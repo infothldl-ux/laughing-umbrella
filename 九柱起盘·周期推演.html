@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>九柱起盘 · 周期推演星盘</title>
+<script>window.__LUNAR_CDNS=[
+  "https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.12/lunar.js",
+  "https://unpkg.com/lunar-javascript@1.6.12/lunar.js",
+  "https://fastly.jsdelivr.net/npm/lunar-javascript@1.6.12/lunar.js"
+];</script>
+<style>
+:root{
+  --bg:#05060f; --cyan:#22d3ee; --violet:#a78bfa; --magenta:#f0abfc; --gold:#fcd34d;
+  --green:#34d399; --red:#fb7185; --earth:#fbbf24; --metal:#e8eaf2; --water:#38bdf8;
+  --up:#ff5b73; --down:#2fd4a0;
+  --ink:#e7ecff; --ink2:#9fb0d8; --ink3:#6b7aa8;
+  --panel:rgba(18,20,48,.55); --line:rgba(124,150,255,.28); --glow:0 0 22px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0; color:var(--ink); background:var(--bg);
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px; line-height:1.8; -webkit-font-smoothing:antialiased; overflow-x:hidden;}
+.serif{font-family:"Noto Serif SC","Songti SC","STSong",serif;}
+#sky{position:fixed; inset:0; z-index:-2; display:block;}
+.aurora{position:fixed; inset:-20% -10% auto -10%; height:80vh; z-index:-1; pointer-events:none;
+  background:
+   radial-gradient(45% 55% at 20% 18%, rgba(167,139,250,.30), transparent 70%),
+   radial-gradient(50% 60% at 82% 12%, rgba(34,211,238,.26), transparent 70%),
+   radial-gradient(45% 50% at 55% 40%, rgba(240,171,252,.18), transparent 72%);
+  filter:blur(8px); animation:drift 18s ease-in-out infinite alternate;}
+@keyframes drift{from{transform:translateY(-10px) scale(1)} to{transform:translateY(18px) scale(1.06)}}
+.wrap{max-width:1080px; margin:0 auto; padding:0 18px 70px;}
+
+header.hero{text-align:center; padding:50px 16px 22px;}
+.hero .brandtop{display:inline-block; font-size:12px; letter-spacing:.34em; color:var(--gold);
+  border:1px solid rgba(252,211,77,.45); border-radius:999px; padding:5px 18px; margin-bottom:16px;
+  background:rgba(252,211,77,.06); box-shadow:var(--glow) rgba(252,211,77,.18);}
+.hero .eye{letter-spacing:.5em; font-size:12.5px; color:var(--cyan); margin:0 0 8px; padding-left:.5em;
+  text-shadow:var(--glow) rgba(34,211,238,.6);}
+.hero h1{font-family:"Noto Serif SC",serif; font-weight:800; margin:0; line-height:1.12;
+  font-size:clamp(30px,6.4vw,56px); letter-spacing:.04em;
+  background:linear-gradient(92deg,#22d3ee,#a78bfa 45%,#f0abfc 75%,#fcd34d);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 18px rgba(167,139,250,.45));}
+.hero .sub{color:var(--ink2); font-size:clamp(14px,2.3vw,17px); margin:14px auto 0; max-width:680px;
+  text-align:justify; text-align-last:left;}
+.hero .badge{display:inline-block; margin-top:16px; font-size:12.5px; color:var(--ink2);
+  border:1px solid var(--line); border-radius:999px; padding:5px 16px; background:rgba(124,150,255,.06);}
+
+.glass{background:var(--panel); border:1px solid var(--line); border-radius:20px;
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  box-shadow:0 18px 50px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);}
+.panel{padding:24px 24px 22px; margin:22px 0;}
+.panel h2{font-family:"Noto Serif SC",serif; font-size:20px; margin:0 0 4px; display:flex; align-items:center; gap:10px;}
+.panel h2 .dot{width:9px;height:9px;border-radius:50%;background:var(--cyan);box-shadow:var(--glow) var(--cyan);}
+.panel .hint{color:var(--ink3); font-size:13px; margin:0 0 18px; text-align:justify;}
+
+.modetabs{display:inline-flex; gap:4px; padding:4px; border-radius:12px;
+  background:rgba(10,12,35,.6); border:1px solid var(--line); margin-bottom:18px;}
+.modetabs button{background:transparent; color:var(--ink2); border:0; padding:8px 18px;
+  border-radius:9px; font-size:13.5px; cursor:pointer; font-weight:600; transition:.2s;}
+.modetabs button.on{background:linear-gradient(92deg,rgba(34,211,238,.22),rgba(167,139,250,.22));
+  color:#fff; box-shadow:inset 0 0 0 1px var(--line);}
+.frow{display:flex; flex-wrap:wrap; gap:14px 18px; align-items:flex-end;}
+.field{display:flex; flex-direction:column; gap:6px;}
+.field label{font-size:12.5px; color:var(--ink2); letter-spacing:.04em;}
+input,select{background:rgba(7,9,26,.8); color:var(--ink); border:1px solid var(--line);
+  border-radius:11px; padding:10px 12px; font-size:14.5px; font-family:inherit; outline:none; transition:.2s;}
+input:focus,select:focus{border-color:var(--cyan); box-shadow:0 0 0 3px rgba(34,211,238,.18);}
+input[type=number]{width:84px;} select{min-width:120px;}
+.txtin{width:180px;}
+.gz-in{width:76px; text-align:center; font-family:"Noto Serif SC",serif; font-size:15px; letter-spacing:.06em; padding:9px 6px;}
+.check{display:flex; align-items:center; gap:8px; color:var(--ink2); font-size:13.5px; cursor:pointer; user-select:none;}
+.check input{width:17px;height:17px;accent-color:var(--violet);}
+.subhead{font-size:12.5px;color:var(--ink3);letter-spacing:.1em;margin:22px 0 8px;text-transform:uppercase;}
+
+.btn{cursor:pointer; border:0; border-radius:13px; font-size:16px; font-weight:800; letter-spacing:.08em;
+  padding:13px 30px; color:#06122b; font-family:"Noto Serif SC",serif;
+  background:linear-gradient(92deg,#22d3ee,#a78bfa 55%,#f0abfc);
+  box-shadow:0 10px 30px rgba(167,139,250,.4), inset 0 1px 0 rgba(255,255,255,.5); transition:.18s;}
+.btn:hover{transform:translateY(-2px); box-shadow:0 16px 38px rgba(167,139,250,.55);}
+.chip{cursor:pointer; font-size:12.5px; color:var(--ink2); background:rgba(124,150,255,.07);
+  border:1px solid var(--line); border-radius:999px; padding:6px 14px; transition:.18s;}
+.chip:hover{color:#fff; border-color:var(--cyan); box-shadow:0 0 14px rgba(34,211,238,.3);}
+#engineStat{font-size:12px; color:var(--ink3); margin-top:14px;}
+#engineStat b{color:var(--cyan);}
+
+#out{display:none;}
+.metaline{display:flex; flex-wrap:wrap; gap:8px 18px; color:var(--ink2); font-size:13.5px; margin-bottom:6px;}
+.metaline b{color:var(--gold);}
+
+.pillars{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:10px 0 4px;}
+.pcol{background:rgba(7,9,26,.5); border:1px solid var(--line); border-radius:16px; padding:12px 8px 14px; text-align:center;}
+.pcol .ph{font-size:12.5px; color:var(--ink3); letter-spacing:.1em; margin-bottom:8px;}
+.pcol.day{border-color:var(--gold); box-shadow:0 0 22px rgba(252,211,77,.22);}
+.pcol.day .ph{color:var(--gold);}
+.zi{font-family:"Noto Serif SC",serif; font-weight:800; font-size:clamp(30px,6vw,44px); line-height:1.18; display:block;}
+.ssg{font-size:11.5px; color:var(--ink2); margin-top:2px; min-height:1em;}
+.hidegan{margin-top:9px; padding-top:8px; border-top:1px dashed var(--line); font-size:11px; color:var(--ink3); line-height:1.7;}
+.hidegan .hg{display:inline-block; margin:1px 2px;}
+.dishi{font-size:11px; color:var(--violet); margin-top:6px;}
+.elw{color:var(--green)} .elh{color:var(--red)} .elt{color:var(--earth)} .elj{color:var(--metal)} .els{color:var(--water)}
+
+.ws-wrap{display:grid; grid-template-columns:1fr 1.3fr; gap:20px; align-items:center; margin-top:8px;}
+@media(max-width:640px){.ws-wrap{grid-template-columns:1fr}}
+.ws-badge{text-align:center; padding:18px; border-radius:18px; border:1px solid var(--line); background:rgba(7,9,26,.5);}
+.ws-badge .big{font-family:"Noto Serif SC",serif; font-weight:800; font-size:40px; line-height:1;
+  background:linear-gradient(92deg,#22d3ee,#f0abfc); -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.ws-badge .sc{font-size:12px; color:var(--ink3); margin-top:8px;}
+.steps{padding:0; margin:0;}
+.steps li{margin:7px 0; list-style:none;}
+.steps .k{display:inline-block; min-width:64px; color:var(--cyan); font-weight:700;}
+.tag-y{color:var(--green); font-weight:700;} .tag-n{color:var(--red); font-weight:700;}
+
+.bars{display:flex; flex-direction:column; gap:9px; margin-top:6px;}
+.bar{display:flex; align-items:center; gap:10px;}
+.bar .bl{width:30px; font-family:"Noto Serif SC",serif; font-weight:800; font-size:17px; text-align:center;}
+.bar .track{flex:1; height:14px; border-radius:8px; background:rgba(124,150,255,.1); overflow:hidden;}
+.bar .fill{height:100%; border-radius:8px; transition:width .9s cubic-bezier(.2,.8,.2,1);}
+.bar .bn{width:46px; font-size:12.5px; color:var(--ink2); text-align:right;}
+
+.shishen{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
+.sschip{font-size:12.5px; padding:5px 12px; border-radius:999px; border:1px solid var(--line); background:rgba(124,150,255,.07); color:var(--ink);}
+.sschip b{color:var(--gold);}
+.legendsx{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-top:14px;}
+.lx{font-size:11px; color:var(--ink2); background:rgba(7,9,26,.4); border:1px solid var(--line); border-radius:10px; padding:8px 8px; text-align:center; line-height:1.5;}
+.lx b{color:var(--cyan);}
+@media(max-width:560px){.legendsx{grid-template-columns:repeat(2,1fr)}}
+
+.narr{font-size:15.5px; line-height:1.95; color:var(--ink);}
+.narr .lead{font-family:"Noto Serif SC",serif; font-size:clamp(17px,3vw,22px); font-weight:800; line-height:1.5;
+  background:linear-gradient(92deg,#fcd34d,#f0abfc); -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent; margin:4px 0 16px;}
+.narr p{margin:.6em 0; text-align:justify;}
+.narr .hl{color:var(--gold); font-weight:700;}
+
+/* 现实轨 */
+.rt-head{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:8px;}
+.linkbtn{cursor:pointer; font-size:12.5px; color:#06122b; font-weight:700; background:linear-gradient(92deg,#22d3ee,#a78bfa);
+  border:0; border-radius:999px; padding:7px 16px;}
+.rt-essence{font-size:14px; color:var(--ink); background:rgba(7,9,26,.45); border:1px solid var(--line);
+  border-left:4px solid var(--magenta); border-radius:12px; padding:12px 16px; margin:6px 0 16px; text-align:justify;}
+.rt-essence b{color:var(--magenta);}
+.rt-rows{display:flex; flex-direction:column; gap:8px;}
+.rt-row{display:flex; flex-wrap:wrap; align-items:center; gap:10px; background:rgba(7,9,26,.4);
+  border:1px solid var(--line); border-radius:12px; padding:10px 14px;}
+.rt-row .nm{flex:1; min-width:140px; font-size:13.5px; color:var(--ink);}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden;}
+.seg button{background:transparent; color:var(--ink3); border:0; padding:6px 12px; font-size:12.5px; cursor:pointer;}
+.seg button.on.good{background:rgba(47,212,160,.25); color:#bafadf;}
+.seg button.on.mid{background:rgba(124,150,255,.22); color:#dfe6ff;}
+.seg button.on.bad{background:rgba(255,91,115,.25); color:#ffd2da;}
+
+/* K线 */
+#klineWrap{position:relative; margin-top:6px;}
+#kline{width:100%; height:300px; display:block; border-radius:14px; border:1px solid var(--line); background:rgba(4,6,16,.6);}
+.klegend{display:flex; flex-wrap:wrap; gap:14px; margin-top:10px; font-size:12px; color:var(--ink2);}
+.klegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
+
+.stages5{display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:8px;}
+@media(max-width:640px){.stages5{grid-template-columns:repeat(2,1fr)}}
+.st{text-align:center; padding:14px 6px; border-radius:14px; border:1px solid var(--line); background:rgba(7,9,26,.45); transition:.3s;}
+.st .sn{font-family:"Noto Serif SC",serif; font-weight:800; font-size:18px;}
+.st .sd{font-size:11px; color:var(--ink3); margin-top:3px;}
+.st.s0 .sn{color:var(--green)} .st.s1 .sn{color:var(--cyan)} .st.s2 .sn{color:var(--gold)}
+.st.s3 .sn{color:var(--magenta)} .st.s4 .sn{color:var(--violet)}
+.st.active{border-color:var(--gold); background:rgba(252,211,77,.12); box-shadow:0 0 24px rgba(252,211,77,.3); transform:translateY(-3px);}
+
+.dualgrid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:6px;}
+@media(max-width:640px){.dualgrid{grid-template-columns:1fr}}
+.dcard{border:1px solid var(--line); border-radius:14px; padding:14px 16px; background:rgba(7,9,26,.45);}
+.dcard .t{font-family:"Noto Serif SC",serif; font-weight:800; font-size:16px; margin-bottom:4px;}
+.dcard.real .t{color:var(--magenta)} .dcard.time .t{color:var(--cyan)}
+.dcard p{font-size:13.5px; color:var(--ink2); margin:.3em 0; text-align:justify;}
+
+.verdict{border-radius:18px; padding:20px 22px; margin-top:6px; border:1px solid var(--line);
+  background:linear-gradient(150deg,rgba(34,211,238,.10),rgba(167,139,250,.10),rgba(240,171,252,.10));}
+.verdict .vtop{display:flex; flex-wrap:wrap; gap:10px 22px; align-items:baseline; margin-bottom:10px;}
+.verdict .vk{font-size:12px; color:var(--ink3); letter-spacing:.1em;}
+.verdict .vv{font-family:"Noto Serif SC",serif; font-weight:800; font-size:24px;}
+.verdict .vv.up{color:var(--up)} .verdict .vv.down{color:var(--down)} .verdict .vv.mid{color:var(--gold)}
+.verdict p{font-size:14.5px; text-align:justify; margin:.5em 0;}
+.verdict .quad{display:inline-block; font-size:12.5px; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:3px 10px; margin-top:4px; background:rgba(7,9,26,.4);}
+
+.warn{border:1px solid rgba(251,113,133,.5); background:rgba(251,113,133,.08); border-radius:16px;
+  padding:16px 18px; margin-top:22px; font-size:13.5px; color:#ffd9df; text-align:justify;}
+.warn b{color:var(--red);}
+.toolbar{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px;}
+.tbtn{cursor:pointer; font-size:13px; color:var(--ink); background:rgba(124,150,255,.08);
+  border:1px solid var(--line); border-radius:11px; padding:9px 16px; transition:.18s;}
+.tbtn:hover{border-color:var(--cyan); color:#fff;}
+
+footer{text-align:center; color:var(--ink3); font-size:12.5px; padding:30px 16px 10px; line-height:1.9;}
+footer b{color:var(--gold);}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--cyan);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(max-width:560px){.pillars{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+<div class="aurora"></div>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="brandtop">周 期 认 知 学 · 教 学 工 具</div>
+  <p class="eye">九 柱 星 盘 · 双 轨 推 演</p>
+  <h1 class="serif">九柱起盘 · 周期推演</h1>
+  <p class="sub">选一个时刻，自动排出八字四柱与天干地支，推演日元、当令、旺衰、十神；再输入你的标的，两轨合参，自行读出它的周期、趋势与方向。</p>
+  <div class="badge">🜲 教学工具 · 不算命 · 不预测价格 · 不构成投资建议</div>
+</header>
+
+<!-- ===== 输入 ===== -->
+<section class="glass panel">
+  <h2 class="serif"><span class="dot"></span>① 起盘 · 选择时刻与标的</h2>
+  <p class="hint">公司用「上市日 ＋ 开盘 9:30」，人用出生年月日时。换年看立春、换月看节气——联网内核会自动算准这两个坑。这里只给方法，案例请你自己排。</p>
+
+  <div class="modetabs">
+    <button id="tabTime" class="on" onclick="setMode('time')">按时间排盘</button>
+    <button id="tabGz" onclick="setMode('gz')">直接输入四柱</button>
+  </div>
+
+  <div id="modeTime">
+    <div class="frow">
+      <div class="field"><label>公历年</label><input type="number" id="yy" min="1901" max="2100"></div>
+      <div class="field"><label>月</label><input type="number" id="mo" min="1" max="12"></div>
+      <div class="field"><label>日</label><input type="number" id="dd" min="1" max="31"></div>
+      <div class="field"><label>时</label><input type="number" id="hh" min="0" max="23"></div>
+      <div class="field"><label>分</label><input type="number" id="mi" min="0" max="59"></div>
+      <label class="check" style="margin-bottom:10px"><input type="checkbox" id="noHour"> 时辰未知（不臆造时柱）</label>
+      <span class="chip" onclick="loadNow()">⏱ 填入此刻</span>
+    </div>
+  </div>
+
+  <div id="modeGz" style="display:none">
+    <p class="hint">已知四柱时，直接输入八个字（时辰从略则时柱留空）。</p>
+    <div class="frow">
+      <div class="field"><label>年柱</label><input class="gz-in" id="gzY" maxlength="2" placeholder="如 甲子"></div>
+      <div class="field"><label>月柱</label><input class="gz-in" id="gzM" maxlength="2" placeholder="如 丙寅"></div>
+      <div class="field"><label>日柱</label><input class="gz-in" id="gzD" maxlength="2" placeholder="如 戊辰"></div>
+      <div class="field"><label>时柱（可空）</label><input class="gz-in" id="gzT" maxlength="2" placeholder="可空"></div>
+    </div>
+  </div>
+
+  <div class="subhead">标的 · 现实轨</div>
+  <div class="frow">
+    <div class="field"><label>标的 / 行业名称</label><input class="txtin" type="text" id="subjName" placeholder="如 黄金 / 沪铜 / 某公司"></div>
+    <div class="field"><label>命的类型（现实轨模板）</label>
+      <select id="subjType">
+        <option value="货币避险型">货币 · 避险型</option>
+        <option value="工业周期型">工业 · 周期型</option>
+        <option value="成长题材型">成长 · 题材型</option>
+        <option value="通用自定义">通用 · 自定义</option>
+      </select>
+    </div>
+    <div class="field"><label>行情代码（Stooq · 可留空自动识别）</label><input class="txtin" type="text" id="symInput" placeholder="黄金XAUUSD/铜HG.F/600352.cn/AAPL.US"></div>
+  </div>
+
+  <div class="subhead">读到未来的哪个时点（发展K线终点 · 流年月日时）</div>
+  <div class="frow">
+    <div class="field"><label>年</label><input type="number" id="ty" value="2030" min="1901" max="2100"></div>
+    <div class="field"><label>月</label><input type="number" id="tmo" value="12" min="1" max="12"></div>
+    <div class="field"><label>日</label><input type="number" id="tdd" value="31" min="1" max="31"></div>
+    <div class="field"><label>时</label><input type="number" id="thh" value="12" min="0" max="23"></div>
+  </div>
+
+  <div style="margin-top:20px"><button class="btn" onclick="run()">✦ 起盘推演 ✦</button></div>
+  <div id="engineStat"><span class="spin"></span> 正在连接在线万年历内核…</div>
+</section>
+
+<!-- ===== 输出 ===== -->
+<div id="out">
+
+  <section class="glass panel">
+    <h2 class="serif"><span class="dot"></span>② 命盘 · 四柱八字</h2>
+    <div class="metaline" id="meta"></div>
+    <div class="pillars" id="pillars"></div>
+  </section>
+
+  <section class="glass panel">
+    <h2 class="serif"><span class="dot"></span>③ 日元 · 当令 · 旺衰</h2>
+    <p class="hint" id="dyHint"></p>
+    <div class="ws-wrap">
+      <div class="ws-badge"><div class="big serif" id="wsBig">—</div><div class="sc" id="wsScore"></div></div>
+      <ul class="steps" id="wsSteps"></ul>
+    </div>
+  </section>
+
+  <section class="glass panel">
+    <h2 class="serif"><span class="dot"></span>④ 五行能量</h2>
+    <p class="hint">按天干＋地支本气盘点，看哪种力量当令、哪种近乎不现。</p>
+    <div class="bars" id="bars"></div>
+  </section>
+
+  <section class="glass panel">
+    <h2 class="serif"><span class="dot"></span>⑤ 十神 · 以「我」为圆心</h2>
+    <p class="hint">以日元为「我」，盘里每个字与我的生克阴阳关系，归成十神。</p>
+    <div class="shishen" id="ssChips"></div>
+    <div class="legendsx" id="ssLegend"></div>
+  </section>
+
+  <section class="glass panel">
+    <h2 class="serif"><span class="dot"></span>⑥ 现实轨 · 本质与命脉</h2>
+    <div class="rt-head">
+      <span class="hint" style="margin:0">问「为什么涨/跌、往哪走」——把盘读出的本质，落到可检验的供需基本面。</span>
+      <button class="linkbtn" id="rtSearch" onclick="netCheck()">🌐 联网查证最新基本面</button>
+    </div>
+    <div class="rt-essence" id="rtEssence"></div>
+    <p class="hint" style="margin:4px 0 8px">逐条判断当下对你的标的是<b style="color:#2fd4a0">利好</b>、中性、还是<b style="color:#fb7185">利空</b>——这是你自己的功课：</p>
+    <div class="rt-rows" id="rtRows"></div>
+  </section>
+
+  <section class="glass panel">
+    <h2 class="serif"><span class="dot"></span>⑦ 时间轨 · 发展K线（启动→加速→高潮→衰退→重生）</h2>
+    <p class="hint">把流动的时间（流年）一年年套到底子上：帮身则力量涨、克泄则力量退，累计成一条「时运力量」曲线——直到你选的未来时点。<b style="color:#fb7185">此为时间轨力量模型示意，非价格、非预测。</b></p>
+    <div id="klineWrap"><canvas id="kline"></canvas></div>
+    <div class="klegend">
+      <span><i style="background:var(--up)"></i>模型力量上行（帮身·涨）</span>
+      <span><i style="background:var(--down)"></i>模型力量下行（克泄·退）</span>
+      <span><i style="background:#22d3ee"></i>实际走势（Stooq·联网）</span>
+      <span><i style="background:rgba(252,211,77,.6)"></i>当前年</span>
+      <span><i style="background:rgba(167,139,250,.5)"></i>未来·推演段</span>
+    </div>
+    <div id="klineStat" style="font-size:12.5px;color:#9fb0d8;margin-top:10px"></div>
+    <details style="margin-top:10px">
+      <summary style="cursor:pointer;color:#9fb0d8;font-size:12.5px">▸ 手动粘贴历史走势校准（自动获取失败时用 · 每行「日期,收盘」）</summary>
+      <textarea id="manualData" placeholder="2018-12-31,1280&#10;2019-12-31,1517&#10;2020-12-31,1898&#10;…（可从同花顺/东方财富导出，按年或按月皆可）" style="width:100%;height:96px;margin-top:8px;background:rgba(7,9,26,.8);color:var(--ink);border:1px solid var(--line);border-radius:11px;padding:10px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      <button class="tbtn" style="margin-top:8px" onclick="overlayManual()">用粘贴的数据校准</button>
+    </details>
+    <div class="metaline" id="lnMeta" style="margin-top:14px"></div>
+    <div class="stages5" id="stages5">
+      <div class="st s0" data-s="0"><div class="sn">启动</div><div class="sd">否极泰来</div></div>
+      <div class="st s1" data-s="1"><div class="sn">加速</div><div class="sd">趋势确立</div></div>
+      <div class="st s2" data-s="2"><div class="sn">高潮</div><div class="sd">物极必反在即</div></div>
+      <div class="st s3" data-s="3"><div class="sn">衰退</div><div class="sd">力量退潮</div></div>
+      <div class="st s4" data-s="4"><div class="sn">重生</div><div class="sd">出清蓄力</div></div>
+    </div>
+  </section>
+
+  <section class="glass panel">
+    <h2 class="serif"><span class="dot"></span>⑧ 双轨合参 · 趋势 / 概率 / 方向</h2>
+    <div class="dualgrid">
+      <div class="dcard real"><div class="t">现实轨 · 决定方向</div><p id="dcReal">—</p></div>
+      <div class="dcard time"><div class="t">时间轨 · 决定位置</div><p id="dcTime">—</p></div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="warn"><b>⚠ 边界红线：</b>本工具是易学传统推演的<b>认知框架</b>与时间轴坐标，<b>不算命、不预测任何具体价格、不构成投资建议</b>。给你的永远是「概率与判据」，不是「断言」。越是拍胸脯「包准」的，越要捂紧钱包；真功夫是盯住信号、随证据更新判断。</div>
+  </section>
+</div>
+
+<footer>
+  <p><b>周期认知学</b> · 九柱起盘推演星盘 — 仅供教学工具使用</p>
+  <p>排盘内核：联网优先 lunar-javascript，离线自动切换内置内核 · 可在任意联网电脑打开本文件直接使用</p>
+  <p style="opacity:.7">本页仅供学习理解与批判性思考之用 · 愿你看懂周期，也看清人心</p>
+</footer>
+</div>
+
+<script>
+/* ===== 星空 ===== */
+(function(){var c=document.getElementById('sky'),x=c.getContext('2d'),st=[],W,H;
+ function rs(){W=c.width=innerWidth;H=c.height=innerHeight;st=[];var n=Math.min(220,Math.floor(W*H/9000));
+  for(var i=0;i<n;i++)st.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+.3,a:Math.random(),s:Math.random()*.02+.004,hue:[190,265,300,48][i%4]});}
+ rs();addEventListener('resize',rs);
+ (function loop(){x.clearRect(0,0,W,H);for(var i=0;i<st.length;i++){var p=st[i];p.a+=p.s;var o=.35+.45*Math.sin(p.a);
+  x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fillStyle='hsla('+p.hue+',90%,70%,'+o+')';x.shadowBlur=6;x.shadowColor='hsla('+p.hue+',90%,70%,'+o+')';x.fill();}
+  x.shadowBlur=0;requestAnimationFrame(loop);})();})();
+
+/* ===== 命理数据表（取自课件《核心推演方法详解》） ===== */
+var GAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+var ZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+var GAN_WX={甲:'木',乙:'木',丙:'火',丁:'火',戊:'土',己:'土',庚:'金',辛:'金',壬:'水',癸:'水'};
+var GAN_YY={甲:1,丙:1,戊:1,庚:1,壬:1,乙:0,丁:0,己:0,辛:0,癸:0};
+var ZHI_WX={子:'水',丑:'土',寅:'木',卯:'木',辰:'土',巳:'火',午:'火',未:'土',申:'金',酉:'金',戌:'土',亥:'水'};
+var HIDE={子:['癸'],丑:['己','癸','辛'],寅:['甲','丙','戊'],卯:['乙'],辰:['戊','乙','癸'],巳:['丙','庚','戊'],午:['丁','己'],未:['己','丁','乙'],申:['庚','壬','戊'],酉:['辛'],戌:['戊','辛','丁'],亥:['壬','甲']};
+var SHENG={金:'水',水:'木',木:'火',火:'土',土:'金'};
+var KE={金:'木',木:'土',土:'水',水:'火',火:'金'};
+var WXC={木:'elw',火:'elh',土:'elt',金:'elj',水:'els'};
+var WXCOLOR={木:'#34d399',火:'#fb7185',土:'#fbbf24',金:'#e8eaf2',水:'#38bdf8'};
+var STAGES=['长生','沐浴','冠带','临官','帝旺','衰','病','死','墓','绝','胎','养'];
+var CS_START={甲:'亥',丙:'寅',戊:'寅',庚:'巳',壬:'申',乙:'午',丁:'酉',己:'酉',辛:'子',癸:'卯'};
+/* 五行 / 十神 → 经济含义（课件映射规则的延伸） */
+var WX_ECON={金:'货币·信用·金属·资金面',水:'流动性·资金·现金流·避险',木:'成长·扩张·科技·创新',火:'热度·情绪·能源·消费',土:'实业·资产·地产·基建·稳健'};
+var SS_ECON={印:'政策/资金/信用等「靠山」支持',比劫:'同业竞争与分流',食伤:'产出/研发/营收能力',财:'需求/营收/变现',官杀:'监管/成本/外部约束'};
+var TEMPLATES={
+ '货币避险型':['美元强弱','实际利率（升/降）','央行购金/储备','地缘·避险情绪','债务·信用风险'],
+ '工业周期型':['全球/中国经济景气','工业·终端需求','供给（矿山·库存·产能）','能源转型新需求（电车·电网·AI）','美元·成本'],
+ '成长题材型':['行业景气/技术浪潮','产品迭代/落地','盈利兑现','竞争格局','政策风口','估值·情绪'],
+ '通用自定义':['供给','需求','政策/监管','成本/原料','竞争格局']
+};
+
+function diShi(g,z){var s=ZHI.indexOf(CS_START[g]),z2=ZHI.indexOf(z),yang=GAN_YY[g]===1;return STAGES[yang?(z2-s+12)%12:(s-z2+12)%12];}
+function shiShen(dm,t){var dw=GAN_WX[dm],tw=GAN_WX[t],same=GAN_YY[dm]===GAN_YY[t];
+ if(tw===dw)return same?'比肩':'劫财';if(SHENG[tw]===dw)return same?'偏印':'正印';
+ if(SHENG[dw]===tw)return same?'食神':'伤官';if(KE[tw]===dw)return same?'七杀':'正官';
+ if(KE[dw]===tw)return same?'偏财':'正财';return '—';}
+function ssGroup(s){if(s==='正印'||s==='偏印')return'印';if(s==='比肩'||s==='劫财')return'比劫';
+ if(s==='食神'||s==='伤官')return'食伤';if(s==='正财'||s==='偏财')return'财';if(s==='正官'||s==='七杀')return'官杀';return'';}
+function lingRelation(dm,mz){var dw=GAN_WX[dm],mw=ZHI_WX[mz];
+ if(mw===dw)return{get:true,txt:'月令与日元同类（帮身）'};if(SHENG[mw]===dw)return{get:true,txt:'月令生日元（印·帮身）'};
+ if(SHENG[dw]===mw)return{get:false,txt:'日元生月令（泄身·退气）'};if(KE[dw]===mw)return{get:false,txt:'日元克月令（耗身·财）'};
+ if(KE[mw]===dw)return{get:false,txt:'月令克日元（制身·官杀）'};return{get:false,txt:'—'};}
+
+function analyzeStrength(dm,pillars){var dw=GAN_WX[dm],score=0,steps=[];
+ var mz=pillars[1].zhi,lr=lingRelation(dm,mz),ds=diShi(dm,mz);
+ if(lr.get)score+=3;else if(SHENG[dw]===ZHI_WX[mz])score-=1;else score-=2;
+ steps.push({k:'得令否',yes:lr.get,txt:lr.txt+'　月令『'+mz+'』· 日元十二长生在『'+ds+'』'});
+ var rooted=[];pillars.forEach(function(p){if(!p.zhi)return;if(HIDE[p.zhi].some(function(h){return GAN_WX[h]===dw;}))rooted.push(p.zhi);});
+ if(rooted.length)score+=rooted.length*1.6;
+ steps.push({k:'得地否',yes:rooted.length>0,txt:rooted.length?('地支有根：'+rooted.join('、')+'（藏'+dm+'之同类，通根·站得稳）'):'地支无根（虚浮、立不住）'});
+ var yinCnt=0,biCnt=0,foeCnt=0;
+ function tally(t,w){var g=ssGroup(shiShen(dm,t));if(g==='印'){yinCnt++;score+=1.3*w;}else if(g==='比劫'){biCnt++;score+=1.3*w;}else{foeCnt++;score-=1.0*w;}}
+ pillars.forEach(function(p,i){if(p.gan&&i!==2)tally(p.gan,1);if(p.zhi)tally(HIDE[p.zhi][0],i===1?1.4:1.1);});
+ steps.push({k:'得生否',yes:yinCnt>0,txt:yinCnt?('印星（生我）共 '+yinCnt+' 处，有源头活水'):'印星近无（缺资源·靠山弱）'});
+ steps.push({k:'得助否',yes:biCnt>0,txt:biCnt?('比劫（同类）共 '+biCnt+' 处，有帮手'):'比劫近无（孤身·少帮手）'});
+ var verdict=score>=1.2?'身强':(score<=-1.2?'身弱':'中和');
+ return{verdict:verdict,score:Math.round(score*10)/10,steps:steps,rooted:rooted,foeCnt:foeCnt};}
+
+/* ===== 离线内核 ===== */
+function jdn(y,m,d){var a=Math.floor((14-m)/12),yy=y+4800-a,mm=m+12*a-3;return d+Math.floor((153*mm+2)/5)+365*yy+Math.floor(yy/4)-Math.floor(yy/100)+Math.floor(yy/400)-32045;}
+var C21=[5.4055,20.12,3.87,18.73,5.63,20.646,4.81,20.1,5.52,21.04,5.678,21.37,7.108,22.83,7.5,23.13,7.646,23.042,8.318,23.438,7.438,22.36,7.18,22.6];
+var C20=[6.11,20.84,4.6295,19.4599,6.3826,21.4155,5.59,20.888,6.318,21.86,6.5,22.20,7.928,23.65,8.35,23.95,8.44,23.822,9.098,24.218,8.218,23.08,7.9,22.60];
+function termDay(year,n){var C=year>=2000?C21[n]:C20[n];var y=year%100;var L=Math.floor((y-1)/4);return Math.floor(y*0.2422+C)-L;}
+var JIE=[{n:2,zhi:'寅'},{n:4,zhi:'卯'},{n:6,zhi:'辰'},{n:8,zhi:'巳'},{n:10,zhi:'午'},{n:12,zhi:'未'},{n:14,zhi:'申'},{n:16,zhi:'酉'},{n:18,zhi:'戌'},{n:20,zhi:'亥'},{n:22,zhi:'子'},{n:0,zhi:'丑'}];
+function offlineBazi(y,mo,d,h){
+ var di=(jdn(y,mo,d)+49)%60,dGan=GAN[di%10],dZhi=ZHI[di%12];
+ var lichun=termDay(y,2),sy=(mo<2||(mo===2&&d<lichun))?y-1:y;
+ var yi=((sy-4)%10+10)%10,yzi=((sy-4)%12+12)%12,yGan=GAN[yi],yZhi=ZHI[yzi];
+ var cand=[];JIE.forEach(function(j){var jm=Math.floor(j.n/2)+1;cand.push({zhi:j.zhi,mm:jm,dd:termDay(y,j.n)});});
+ function lin(mm,dd){return mm*100+dd;}var cur=lin(mo,d),best=null;
+ cand.forEach(function(cc){if(lin(cc.mm,cc.dd)<=cur){if(!best||lin(cc.mm,cc.dd)>lin(best.mm,best.dd))best=cc;}});
+ var monthZhi=best?best.zhi:'丑';
+ var mo2=['寅','卯','辰','巳','午','未','申','酉','戌','亥','子','丑'];
+ var sg={甲:'丙',己:'丙',乙:'戊',庚:'戊',丙:'庚',辛:'庚',丁:'壬',壬:'壬',戊:'甲',癸:'甲'};
+ var mGan=GAN[(GAN.indexOf(sg[yGan])+mo2.indexOf(monthZhi))%10];
+ var tGan=null,tZhi=null;
+ if(h!=null){var hzi=Math.floor(((h+1)%24)/2);tZhi=ZHI[hzi];
+  var sh={甲:'甲',己:'甲',乙:'丙',庚:'丙',丙:'戊',辛:'戊',丁:'庚',壬:'庚',戊:'壬',癸:'壬'};
+  tGan=GAN[(GAN.indexOf(sh[dGan])+hzi)%10];}
+ return{y:yGan+yZhi,m:mGan+monthZhi,d:dGan+dZhi,t:tGan?tGan+tZhi:null};}
+
+/* ===== 联网内核 ===== */
+var LUNAR_OK=false,lunarTried=false;
+function loadLunar(i){i=i||0;if(typeof Solar!=='undefined'){onLunar(true);return;}
+ if(i>=window.__LUNAR_CDNS.length){onLunar(false);return;}
+ var s=document.createElement('script');s.src=window.__LUNAR_CDNS[i];
+ s.onload=function(){onLunar(typeof Solar!=='undefined');};s.onerror=function(){loadLunar(i+1);};document.head.appendChild(s);}
+function onLunar(ok){LUNAR_OK=ok;lunarTried=true;var el=document.getElementById('engineStat');
+ if(ok)el.innerHTML='✓ 已连接在线万年历内核 <b>lunar-javascript</b>：节气/立春精确换柱。';
+ else el.innerHTML='○ 离线模式：使用内置内核（日柱精确，年/月柱按节气近似）。联网可获最精确结果。';}
+loadLunar(0);setTimeout(function(){if(!lunarTried)onLunar(typeof Solar!=='undefined');},5000);
+
+function baziOf(y,mo,d,h,mi){
+ if(LUNAR_OK){var solar=Solar.fromYmdHms(y,mo,d,h==null?12:h,mi||0,0),lunar=solar.getLunar(),ec=lunar.getEightChar();
+  try{ec.setSect(2);}catch(e){}
+  var extra={lunarStr:lunar.getYearInChinese()+'年 '+lunar.getMonthInChinese()+'月'+lunar.getDayInChinese(),shengxiao:lunar.getYearShengXiao(),jieqi:''};
+  try{var pj=lunar.getPrevJieQi(true);if(pj)extra.jieqi=pj.getName();}catch(e){}
+  return{y:ec.getYear(),m:ec.getMonth(),d:ec.getDay(),t:(h==null?null:ec.getTime()),extra:extra};}
+ return offlineBazi(y,mo,d,h);}
+function yearGZ(year){if(LUNAR_OK){try{return Solar.fromYmd(year,6,1).getLunar().getYearInGanZhi();}catch(e){}}
+ var yi=((year-4)%10+10)%10,yz=((year-4)%12+12)%12;return GAN[yi]+ZHI[yz];}
+
+/* ===== 交互 ===== */
+var MODE='time';
+function setMode(m){MODE=m;
+ document.getElementById('tabTime').classList.toggle('on',m==='time');
+ document.getElementById('tabGz').classList.toggle('on',m==='gz');
+ document.getElementById('modeTime').style.display=m==='time'?'':'none';
+ document.getElementById('modeGz').style.display=m==='gz'?'':'none';}
+function gv(id,v){document.getElementById(id).value=v;}
+function v(id){return document.getElementById(id).value;}
+function loadNow(){var n=new Date();gv('yy',n.getFullYear());gv('mo',n.getMonth()+1);gv('dd',n.getDate());gv('hh',n.getHours());gv('mi',n.getMinutes());document.getElementById('noHour').checked=false;}
+(function init(){var n=new Date();gv('yy',n.getFullYear());gv('mo',n.getMonth()+1);gv('dd',n.getDate());gv('hh',9);gv('mi',30);})();
+function cleanGz(id){return (v(id)||'').replace(/\s/g,'');}
+function valid(s){return s&&s.length===2&&GAN.indexOf(s[0])>=0&&ZHI.indexOf(s[1])>=0;}
+
+var STATE={};
+function run(){
+ var bz,srcNote='',birthYear=null;
+ if(MODE==='gz'){
+  var Y=cleanGz('gzY'),M=cleanGz('gzM'),D=cleanGz('gzD'),T=cleanGz('gzT');
+  if(!valid(Y)||!valid(M)||!valid(D)){alert('请正确输入年、月、日三柱（各两字，如「丙午」）。');return;}
+  if(T&&!valid(T)){alert('时柱格式不对，留空表示时辰从略。');return;}
+  bz={y:Y,m:M,d:D,t:T||null};srcNote='手动输入四柱';
+ }else{
+  var y=+v('yy'),mo=+v('mo'),d=+v('dd'),noH=document.getElementById('noHour').checked;
+  var h=noH?null:+v('hh'),mi=noH?0:+v('mi');
+  if(!(y>=1901&&y<=2100)){alert('年份请在 1901–2100 之间。');return;}
+  bz=baziOf(y,mo,d,h,mi);srcNote=LUNAR_OK?'在线内核·节气精确':'内置内核·近似换节气';birthYear=y;
+ }
+ STATE.bz=bz;STATE.birthYear=birthYear;STATE.srcNote=srcNote;
+ STATE.subjName=(v('subjName')||'').trim()||'该标的';
+ STATE.subjType=v('subjType');
+ STATE.target={y:+v('ty'),mo:+v('tmo'),d:+v('tdd'),h:+v('thh')};
+ render();
+}
+
+/* ===== 渲染 ===== */
+function render(){
+ var bz=STATE.bz;
+ var pcs=[bz.y,bz.m,bz.d].concat(bz.t?[bz.t]:[]);
+ var names=['年柱','月柱','日柱','时柱'];
+ var pillars=pcs.map(function(s){return{gan:s[0],zhi:s[1]};});
+ var dm=bz.d[0],dmWx=GAN_WX[dm],dmYY=GAN_YY[dm]?'阳':'阴';
+ STATE.dm=dm;
+
+ var meta=document.getElementById('meta');
+ var m='<span>标的：<b>'+STATE.subjName+'</b>（'+STATE.subjType+'）</span>';
+ m+='<span>八字：<b>'+pcs.join(' · ')+(bz.t?'':'（时柱从略）')+'</b></span>';
+ m+='<span>日元：<b>'+dm+'（'+dmYY+dmWx+'）</b></span>';
+ if(bz.extra){if(bz.extra.lunarStr)m+='<span>农历：'+bz.extra.lunarStr+'</span>';if(bz.extra.shengxiao)m+='<span>生肖：'+bz.extra.shengxiao+'</span>';if(bz.extra.jieqi)m+='<span>节令：'+bz.extra.jieqi+'</span>';}
+ m+='<span style="color:#6b7aa8">'+STATE.srcNote+'</span>';
+ meta.innerHTML=m;
+
+ var ph='';
+ pcs.forEach(function(s,i){var g=s[0],z=s[1],isDay=(i===2),gWx=GAN_WX[g],zWx=ZHI_WX[z];
+  var ssg=isDay?'<span style="color:#fcd34d">日元·我</span>':shiShen(dm,g);
+  var hides=HIDE[z].map(function(hh){return '<span class="hg"><span class="'+WXC[GAN_WX[hh]]+'">'+hh+'</span>·'+shiShen(dm,hh)+'</span>';}).join('');
+  ph+='<div class="pcol'+(isDay?' day':'')+'"><div class="ph">'+names[i]+'</div>'+
+   '<span class="zi '+WXC[gWx]+'">'+g+'</span><div class="ssg">'+ssg+'</div>'+
+   '<span class="zi '+WXC[zWx]+'" style="font-size:34px">'+z+'</span>'+
+   '<div class="dishi">十二长生·'+diShi(dm,z)+'</div>'+
+   '<div class="hidegan">藏干：'+hides+'</div></div>';});
+ document.getElementById('pillars').innerHTML=ph;
+
+ var ana=analyzeStrength(dm,pillars);STATE.ana=ana;
+ document.getElementById('dyHint').innerHTML='日元 <b style="color:#fcd34d">'+dm+'（'+dmYY+dmWx+'）</b> 是整张盘的核心。给「自己」称体重：朋友（印·比劫）多还是对手（食伤·财·官杀）多。';
+ document.getElementById('wsBig').textContent=ana.verdict;
+ document.getElementById('wsScore').textContent='力量评分 '+ana.score+'（>0 偏强 · <0 偏弱）';
+ document.getElementById('wsSteps').innerHTML=ana.steps.map(function(s){return '<li><span class="k">'+s.k+'</span> <span class="'+(s.yes?'tag-y':'tag-n')+'">'+(s.yes?'✓':'✗')+'</span> '+s.txt+'</li>';}).join('');
+
+ var cnt={木:0,火:0,土:0,金:0,水:0};
+ pcs.forEach(function(s){cnt[GAN_WX[s[0]]]++;cnt[ZHI_WX[s[1]]]++;});
+ var maxc=Math.max(1,Math.max(cnt.木,cnt.火,cnt.土,cnt.金,cnt.水));
+ document.getElementById('bars').innerHTML=['木','火','土','金','水'].map(function(e){var pct=Math.round(cnt[e]/maxc*100);
+  return '<div class="bar"><div class="bl '+WXC[e]+'">'+e+'</div><div class="track"><div class="fill" style="width:'+pct+'%;background:linear-gradient(90deg,'+WXCOLOR[e]+'66,'+WXCOLOR[e]+');box-shadow:0 0 12px '+WXCOLOR[e]+'88"></div></div><div class="bn">'+cnt[e]+' 个</div></div>';}).join('');
+
+ var ssList=[],grp={印:0,比劫:0,食伤:0,财:0,官杀:0};
+ pcs.forEach(function(s,i){if(i!==2){var sg=shiShen(dm,s[0]);ssList.push({c:s[0],wx:GAN_WX[s[0]],ss:sg,pos:names[i]+'干'});grp[ssGroup(sg)]++;}
+  var bg=HIDE[s[1]][0],sz=shiShen(dm,bg);ssList.push({c:s[1],wx:ZHI_WX[s[1]],ss:sz,pos:names[i]+'支本气'});grp[ssGroup(sz)]++;});
+ STATE.grp=grp;
+ document.getElementById('ssChips').innerHTML=ssList.map(function(o){return '<span class="sschip"><span class="'+WXC[o.wx]+'">'+o.c+'</span> '+o.pos+' → <b>'+o.ss+'</b></span>';}).join('');
+ var MEAN={印:'靠山 / 资源',比劫:'兄弟 / 竞争',食伤:'才华 / 产出',财:'财富 / 欲望',官杀:'压力 / 约束'};
+ document.getElementById('ssLegend').innerHTML=['印','比劫','食伤','财','官杀'].map(function(g){return '<div class="lx"><b>'+g+'</b>（'+MEAN[g]+'）：'+grp[g]+' 处'+(grp[g]===0?'　<span style="color:#fb7185">缺</span>':(grp[g]>=3?'　<span style="color:#34d399">旺</span>':''))+'</div>';}).join('');
+
+ renderReality(dm,dmWx,grp,cnt);
+ STATE.actual=null;
+ renderKline();
+ buildVerdict();
+
+ document.getElementById('out').style.display='block';
+ document.getElementById('out').scrollIntoView({behavior:'smooth'});
+ loadActual();
+}
+
+/* ===== 现实轨 ===== */
+function renderReality(dm,dmWx,grp,cnt){
+ var topSS=Object.keys(grp).sort(function(a,b){return grp[b]-grp[a];})[0];
+ var lacks=['印','比劫','食伤','财','官杀'].filter(function(g){return grp[g]===0;});
+ var ess='这张盘以 <b>日元'+dm+dmWx+'</b> 为本，可读作「'+WX_ECON[dmWx]+'」一类的东西；'+
+   '其中 <b>'+topSS+'</b> 偏旺，意味着「'+SS_ECON[topSS]+'」是它最突出的驱动；'+
+   (lacks.length?'而 <b>'+lacks.join('、')+'</b> 近乎不现（'+lacks.map(function(g){return SS_ECON[g];}).join('；')+'）往往是它的短板。':'各类力量都有照应。')+
+   '　这是把盘「描述」成基本面的语言——真伪要回到现实去检验。';
+ document.getElementById('rtEssence').innerHTML=ess;
+
+ var items=TEMPLATES[STATE.subjType];
+ STATE.rtVals={};
+ document.getElementById('rtRows').innerHTML=items.map(function(nm,idx){
+  STATE.rtVals[idx]=0;
+  return '<div class="rt-row"><span class="nm">'+(idx+1)+'. '+nm+'</span>'+
+   '<span class="seg" data-idx="'+idx+'">'+
+   '<button class="good" onclick="rtSet('+idx+',1,this)">利好</button>'+
+   '<button class="mid on" onclick="rtSet('+idx+',0,this)">中性</button>'+
+   '<button class="bad" onclick="rtSet('+idx+',-1,this)">利空</button></span></div>';
+ }).join('');
+}
+function rtSet(idx,val,btn){
+ STATE.rtVals[idx]=val;
+ var seg=btn.parentNode;
+ [].forEach.call(seg.querySelectorAll('button'),function(b){b.classList.remove('on');});
+ btn.classList.add('on');
+ buildVerdict();
+}
+function realityDir(){var s=0,n=0;for(var k in STATE.rtVals){s+=STATE.rtVals[k];n++;}return{sum:s,n:n};}
+function netCheck(){
+ var q=encodeURIComponent((STATE.subjName||'')+' 基本面 供需 最新');
+ window.open('https://www.bing.com/news/search?q='+q,'_blank');
+}
+
+/* ===== 发展K线 ===== */
+function helpOf(dm,gz){var s=0;[gz[0],HIDE[gz[1]][0]].forEach(function(t){var g=ssGroup(shiShen(dm,t));if(g==='印'||g==='比劫')s+=1;else s-=1;});return s;}
+function pseudo(n){var x=Math.sin(n*999.7)*43758.5;return (x-Math.floor(x))*2-1;}
+function buildSeries(){
+ var dm=STATE.dm,base=STATE.ana.score;
+ var endY=STATE.target.y;
+ var startY=STATE.birthYear?STATE.birthYear:(endY-24);
+ if(endY-startY>70)startY=endY-70;
+ if(endY-startY<6)startY=endY-6;
+ var amp=base>1.2?0.11:(base<-1.2?0.20:0.15);
+ var arr=[],P=100;
+ for(var y=startY;y<=endY;y++){
+  var gz=yearGZ(y),h=helpOf(dm,gz);
+  var ret=(h/2)*amp+pseudo(y)*0.03;
+  var open=P,close=P*(1+ret);
+  var hi=Math.max(open,close)*(1+Math.abs(pseudo(y+7))*0.045);
+  var lo=Math.min(open,close)*(1-Math.abs(pseudo(y+3))*0.045);
+  arr.push({y:y,gz:gz,h:h,open:open,close:close,hi:hi,lo:lo});
+  P=close;
+ }
+ return arr;
+}
+function stageFromSeries(arr){
+ var n=arr.length,recent=arr.slice(Math.max(0,n-4));
+ var up=recent.reduce(function(a,b){return a+(b.close-b.open);},0);
+ var maxC=Math.max.apply(null,arr.map(function(a){return a.close;}));
+ var minC=Math.min.apply(null,arr.map(function(a){return a.close;}));
+ var pos=(arr[n-1].close-minC)/(maxC-minC+1e-9);
+ if(up>0&&pos>0.78)return 2;
+ if(up>0&&pos>0.40)return 1;
+ if(up>0)return 0;
+ if(up<0&&pos<0.25)return 4;
+ if(up<0)return 3;
+ return 1;
+}
+function renderKline(){
+ var arr=buildSeries();STATE.series=arr;
+ var stageIdx=stageFromSeries(arr);STATE.stageIdx=stageIdx;
+ var nowY=new Date().getFullYear();
+ var cv=document.getElementById('kline'),dpr=window.devicePixelRatio||1;
+ var cssW=cv.clientWidth||cv.parentNode.clientWidth,cssH=300;
+ cv.width=cssW*dpr;cv.height=cssH*dpr;var g=cv.getContext('2d');g.scale(dpr,dpr);
+ g.clearRect(0,0,cssW,cssH);
+ var padL=8,padR=8,padT=16,padB=26,W=cssW-padL-padR,H=cssH-padT-padB;
+ var hi=Math.max.apply(null,arr.map(function(a){return a.hi;})),lo=Math.min.apply(null,arr.map(function(a){return a.lo;}));
+ var rng=hi-lo||1;function Y(val){return padT+H-(val-lo)/rng*H;}
+ var n=arr.length,cw=W/n,bw=Math.max(2,Math.min(16,cw*0.55));
+ // grid
+ g.strokeStyle='rgba(124,150,255,.10)';g.lineWidth=1;
+ for(var gi=0;gi<=4;gi++){var yy=padT+H*gi/4;g.beginPath();g.moveTo(padL,yy);g.lineTo(padL+W,yy);g.stroke();}
+ // future shade
+ var futStart=null;
+ arr.forEach(function(a,i){if(a.y>nowY&&futStart===null)futStart=i;});
+ if(futStart!==null){var fx=padL+cw*futStart;g.fillStyle='rgba(167,139,250,.07)';g.fillRect(fx,padT,padL+W-fx,H);
+  g.strokeStyle='rgba(167,139,250,.5)';g.setLineDash([4,4]);g.beginPath();g.moveTo(fx,padT);g.lineTo(fx,padT+H);g.stroke();g.setLineDash([]);
+  g.fillStyle='rgba(167,139,250,.8)';g.font='11px sans-serif';g.fillText('未来·推演',fx+4,padT+12);}
+ // candles
+ arr.forEach(function(a,i){
+  var cx=padL+cw*i+cw/2,upC=a.close>=a.open;
+  var col=upC?'#ff5b73':'#2fd4a0';
+  var fut=a.y>nowY;g.globalAlpha=fut?0.55:1;
+  g.strokeStyle=col;g.fillStyle=col;g.lineWidth=1;
+  g.beginPath();g.moveTo(cx,Y(a.hi));g.lineTo(cx,Y(a.lo));g.stroke();
+  var yO=Y(a.open),yC=Y(a.close),top=Math.min(yO,yC),hgt=Math.max(1.5,Math.abs(yO-yC));
+  g.fillRect(cx-bw/2,top,bw,hgt);
+  if(a.y===nowY){g.globalAlpha=1;g.strokeStyle='rgba(252,211,77,.9)';g.lineWidth=1.5;g.setLineDash([3,3]);g.beginPath();g.moveTo(cx,padT);g.lineTo(cx,padT+H);g.stroke();g.setLineDash([]);}
+ });
+ g.globalAlpha=1;
+ // 实际走势叠加（联网）
+ if(STATE.actual&&STATE.actual.length){
+  var av=STATE.actual.filter(function(a){return a.y>=arr[0].y&&a.y<=arr[n-1].y;});
+  if(av.length>1){
+   var amin=Math.min.apply(null,av.map(function(a){return a.close;}));
+   var amax=Math.max.apply(null,av.map(function(a){return a.close;}));
+   var AY=function(c){return padT+H-(c-amin)/((amax-amin)||1)*H;};
+   g.strokeStyle='rgba(34,211,238,.95)';g.lineWidth=2.2;g.beginPath();
+   av.forEach(function(a,k){var x=padL+cw*(a.y-arr[0].y)+cw/2,yy=AY(a.close);if(k===0)g.moveTo(x,yy);else g.lineTo(x,yy);});
+   g.shadowBlur=8;g.shadowColor='rgba(34,211,238,.6)';g.stroke();g.shadowBlur=0;
+   av.forEach(function(a){var x=padL+cw*(a.y-arr[0].y)+cw/2,yy=AY(a.close);g.fillStyle='#22d3ee';g.beginPath();g.arc(x,yy,1.6,0,7);g.fill();});
+  }
+ }
+ // x labels (sparse)
+ g.fillStyle='#6b7aa8';g.font='10px sans-serif';g.textAlign='center';
+ var step=Math.ceil(n/8);
+ arr.forEach(function(a,i){if(i%step===0||i===n-1){g.fillText(a.y,padL+cw*i+cw/2,padT+H+16);}});
+ g.textAlign='left';
+
+ // highlight stage card
+ [].forEach.call(document.querySelectorAll('#stages5 .st'),function(el){el.classList.toggle('active',+el.dataset.s===stageIdx);});
+
+ // target moment four pillars (流年月日时)
+ var t=STATE.target,tb=baziOf(t.y,t.mo,t.d,t.h,0);
+ var tp=[['流年',tb.y],['流月',tb.m],['流日',tb.d],['流时',tb.t]];
+ var dm=STATE.dm;
+ var lm='<span>未来时点：<b>'+t.y+'-'+pad2(t.mo)+'-'+pad2(t.d)+' '+pad2(t.h)+':00</b></span>';
+ tp.forEach(function(p){if(!p[1])return;var hp=helpOf(dm,p[1]);lm+='<span>'+p[0]+'：<b>'+p[1]+'</b> '+(hp>0?'<span style="color:#2fd4a0">帮身·力增</span>':hp<0?'<span style="color:#fb7185">克泄·力退</span>':'中性')+'</span>';});
+ var STG=['启动','加速','高潮','衰退','重生'];
+ lm+='<span>时间轨阶段：<b style="color:#fcd34d">'+STG[stageIdx]+'</b></span>';
+ document.getElementById('lnMeta').innerHTML=lm;
+ STATE.targetBz=tb;
+}
+function pad2(n){return (n<10?'0':'')+n;}
+
+/* ===== 联网获取实际走势 → 校准（同向命中率） ===== */
+/* 标的名 → Yahoo 代码（期货/指数/币）；A股6位自动 .SS/.SZ；其余按用户输入 */
+var SYM_MAP_Y={'黄金':'GC=F','金价':'GC=F','金':'GC=F','白银':'SI=F','白金':'PL=F','银':'SI=F','铜':'HG=F','沪铜':'HG=F','原油':'CL=F','石油':'CL=F','布伦特':'BZ=F','美元':'DX-Y.NYB','美元指数':'DX-Y.NYB','比特币':'BTC-USD','以太':'ETH-USD','纳指':'^NDX','纳斯达克':'^IXIC','标普':'^GSPC','标普500':'^GSPC','道指':'^DJI','天然气':'NG=F','大豆':'ZS=F','玉米':'ZC=F','黄金etf':'GLD'};
+function resolveSymbol(){
+ var ex=(v('symInput')||'').trim();
+ if(ex)return ex;
+ var nm=(STATE.subjName||'').toLowerCase();
+ for(var k in SYM_MAP_Y){ if(nm.indexOf(k.toLowerCase())>=0) return SYM_MAP_Y[k]; }
+ var mm=(STATE.subjName||'').match(/\d{6}/); if(mm) return mm[0];
+ return null;
+}
+/* 东方财富 JSONP（CORS-free，中国大陆可直连），用于 A股6位代码 */
+function jsonp(url){return new Promise(function(resolve){
+ var cb='__em_'+Math.random().toString(36).slice(2);
+ var s=document.createElement('script');
+ var to=setTimeout(function(){clean();resolve(null);},9000);
+ function clean(){try{delete window[cb];}catch(e){window[cb]=undefined;}if(s.parentNode)s.parentNode.removeChild(s);clearTimeout(to);}
+ window[cb]=function(data){clean();resolve(data);};
+ s.onerror=function(){clean();resolve(null);};
+ s.src=url+(url.indexOf('?')>=0?'&':'?')+'cb='+cb;
+ document.head.appendChild(s);});}
+function fetchEastmoney(code){
+ var mkt=code[0]==='6'?'1':'0';
+ var url='https://push2his.eastmoney.com/api/qt/stock/kline/get?secid='+mkt+'.'+code+'&fields1=f1,f2,f3,f4,f5&fields2=f51,f52,f53,f54,f55&klt=103&fqt=2&beg=0&end=20500101';
+ return jsonp(url).then(function(j){try{var ks=j.data.klines,out=[];ks.forEach(function(line){var p=line.split(',');var cl=parseFloat(p[2]);if(!isNaN(cl))out.push({date:p[0],close:cl});});return out.length?out:null;}catch(e){return null;}});
+}
+function viaProxies(url){
+ var routes=['https://api.allorigins.win/raw?url='+encodeURIComponent(url),
+   'https://corsproxy.io/?url='+encodeURIComponent(url),
+   'https://thingproxy.freeboard.io/fetch/'+url, url];
+ var idx=0;
+ function tryNext(){
+  if(idx>=routes.length)return Promise.resolve(null);
+  var r=routes[idx++];
+  var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort();},9000);
+  return fetch(r,{signal:ctl.signal}).then(function(res){clearTimeout(tm);return res.ok?res.text():null;})
+   .then(function(txt){return (txt&&txt.length>40)?txt:tryNext();})
+   .catch(function(){clearTimeout(tm);return tryNext();});
+ }
+ return tryNext();
+}
+function parseYahoo(txt){
+ try{var j=JSON.parse(txt),r=j.chart.result[0],ts=r.timestamp,cl=r.indicators.quote[0].close,out=[];
+  for(var i=0;i<ts.length;i++){if(cl[i]==null)continue;var d=new Date(ts[i]*1000);out.push({date:d.toISOString().slice(0,10),close:cl[i]});}
+  return out.length?out:null;}catch(e){return null;}
+}
+function parseStooq(t){
+ if(!t||t.indexOf('<')>=0)return null;var lines=t.trim().split(/\r?\n/);if(lines.length<3)return null;
+ var hdr=lines[0].split(','),di=hdr.indexOf('Date'),ci=hdr.indexOf('Close');if(di<0||ci<0)return null;var out=[];
+ for(var i=1;i<lines.length;i++){var c=lines[i].split(',');if(c.length<=ci)continue;var cl=parseFloat(c[ci]);if(isNaN(cl))continue;out.push({date:c[di],close:cl});}
+ return out.length?out:null;
+}
+function fetchYS(sym){
+ var ysym=sym; if(/^\d{6}$/.test(sym)) ysym=sym+(sym[0]==='6'?'.SS':'.SZ');
+ var yurl='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(ysym)+'?range=40y&interval=1mo';
+ return viaProxies(yurl).then(function(t){var d=t&&parseYahoo(t);if(d)return{data:d,src:'Yahoo Finance 月线'};
+  var ss=ysym.replace(/[=^]/g,'').replace(/\.ss/i,'.cn').replace(/\.sz/i,'.cn');
+  var surl='https://stooq.com/q/d/l/?s='+encodeURIComponent(ss)+'&i=m';
+  return viaProxies(surl).then(function(t2){var d2=t2&&parseStooq(t2);return d2?{data:d2,src:'Stooq 月线'}:null;});});
+}
+function fetchHistory(sym){
+ var a=sym.match(/^(\d{6})(\.(ss|sz))?$/i);
+ if(a){return fetchEastmoney(a[1]).then(function(d){return d?{data:d,src:'东方财富 月线'}:fetchYS(sym);});}
+ return fetchYS(sym);
+}
+function parseManual(txt){
+ var out=[];(txt||'').trim().split(/\r?\n/).forEach(function(ln){
+  var m=ln.trim().split(/[,\t; ]+/);if(m.length<2)return;
+  var cl=parseFloat(m[m.length-1]);if(isNaN(cl))return;
+  var ym=m[0].match(/\d{4}/);if(!ym)return;
+  out.push({date:(m[0].length>=7?m[0]:ym[0]+'-12-31'),close:cl});});
+ return out.length?out:null;
+}
+function hitRate(){
+ if(!STATE.actual||!STATE.series)return{hit:0,tot:0,pct:0};
+ var am={};STATE.actual.forEach(function(a){am[a.y]=a.close;});
+ var hit=0,tot=0,arr=STATE.series;
+ for(var i=1;i<arr.length;i++){var y=arr[i].y,py=arr[i-1].y;if(am[y]==null||am[py]==null)continue;
+  var md=arr[i].close-arr[i].open,ad=am[y]-am[py];if(ad===0)continue;tot++;if((md>0&&ad>0)||(md<0&&ad<0))hit++;}
+ return{hit:hit,tot:tot,pct:tot?Math.round(hit/tot*100):0};
+}
+function applyActual(data,srcLabel){
+ var yc={};data.forEach(function(r){var y=+(r.date||'').slice(0,4);if(y)yc[y]=r.close;});
+ var ys=Object.keys(yc).map(Number).sort(function(a,b){return a-b;});
+ if(ys.length<2){document.getElementById('klineStat').innerHTML='○ 数据点太少（需≥2 个年度收盘），无法校准。';return;}
+ STATE.actual=ys.map(function(y){return{y:y,close:yc[y]};});
+ renderKline();
+ var hr=hitRate();
+ var pctTxt=hr.tot?('<b style="color:'+(hr.pct>=60?'#2fd4a0':hr.pct>=45?'#fcd34d':'#fb7185')+'">'+hr.hit+'/'+hr.tot+' ＝ '+hr.pct+'%</b>'):'（与模型重叠年份不足）';
+ document.getElementById('klineStat').innerHTML='✓ 已叠加「'+STATE.subjName+'」实际走势（'+ys[0]+'–'+ys[ys.length-1]+'，'+srcLabel+'）。<br>'+
+  '<b>九柱·流年十神模型 与 实际同向命中：</b>'+pctTxt+'　——模型「对得上已发生」的客观度量。'+
+  '<span style="color:#6b7aa8">样本有限、相关≠因果：命中高只说明节奏吻合、非预测；命中低恰恰提醒勿迷信单一模型。</span>';
+}
+function overlayManual(){
+ var d=parseManual(v('manualData'));
+ if(!d){document.getElementById('klineStat').innerHTML='○ 没读到有效数据。每行格式：<b>日期,收盘</b>（如 2019-12-31,1517 或 2019 1517）。';return;}
+ applyActual(d,'手动导入');
+}
+function loadActual(){
+ var stat=document.getElementById('klineStat');
+ var sym=resolveSymbol();
+ if(!sym){stat.innerHTML='ℹ 未识别到「'+STATE.subjName+'」的行情代码——在上方「行情代码」填 Yahoo 代码（黄金 GC=F、铜 HG=F、A股 600352、美股 AAPL），或用下方「手动粘贴」校准。';return;}
+ stat.innerHTML='<span class="spin"></span> 正在联网获取「'+STATE.subjName+'（'+sym+'）」的实际月线走势（数据源可能被网络拦截，请稍候）…';
+ fetchHistory(sym).then(function(res){
+  if(!res||!res.data||!res.data.length){
+   stat.innerHTML='○ 自动获取失败：数据源被网络拦截或代码不符（中国大陆网络常无法直连 Yahoo/Stooq）。<b>请用下方「手动粘贴」</b>导入你从同花顺/东方财富导出的历史收盘，即可完成校准。';
+   return;}
+  applyActual(res.data,'来源 '+res.src);
+ });
+}
+
+/* ===== 双轨结论 ===== */
+function buildVerdict(){
+ if(!STATE.series)return;
+ var stageIdx=STATE.stageIdx,STG=['启动','加速','高潮','衰退','重生'];
+ var rd=realityDir();var R=rd.sum;                 // 现实轨净利好
+ var timeUp=(stageIdx===0||stageIdx===1),timeTop=(stageIdx===2),timeDown=(stageIdx===3),timeBottom=(stageIdx===4);
+ // 现实轨措辞
+ var realTxt=STATE.subjName+'：'+(R>0?'<b style="color:#2fd4a0">现实轨偏向利好</b>（净 +'+R+'）':R<0?'<b style="color:#fb7185">现实轨偏向利空</b>（净 '+R+'）':'<b>现实轨中性</b>（多空相抵）')+
+  '——这是你对命脉清单的判断，决定「为什么、往哪走」。';
+ document.getElementById('dcReal').innerHTML=realTxt;
+ var slope=STATE.series.slice(-4).reduce(function(a,b){return a+(b.close-b.open);},0);
+ var timeTxt='当前读到 <b style="color:#22d3ee">'+STG[stageIdx]+'</b> 阶段，时运力量近年'+(slope>0?'向上（帮身得力）':slope<0?'向下（克泄退气）':'走平')+'——决定「现在站在哪个台阶」。';
+ document.getElementById('dcTime').innerHTML=timeTxt;
+
+ // 四象限
+ var dir,cls,quad,prob,say;
+ if(R>0&&(timeUp||timeBottom)){dir='偏多 · 上行';cls='up';quad='本质好 ＋ 时机顺 → 两轨共振';prob='较高';
+  say='现实轨利好、时间轨又在'+(timeBottom?'底部蓄力':'上行台阶')+'，是较难得的「本质×时机」共振，向上延续的概率较高。';}
+ else if(R>0&&timeTop){dir='中性偏多 · 过热';cls='mid';quad='本质好 ＋ 时机过热（高潮）';prob='中性';
+  say='本质仍好，但时间轨已到「高潮」——好东西买在最热处也会套，宜耐心等回调、别在人人疯抢时追。';}
+ else if(R<0&&(timeUp||timeTop)){dir='警惕 · 见顶风险';cls='down';quad='本质差 ＋ 时机热 ⚠最坑';prob='偏空';
+  say='这是最凶险的诱惑：现实轨已转弱，价格却被时间轨的热度推着——绝大多数人栽在这。两轨背离，警惕回落。';}
+ else if(R<0&&timeDown){dir='偏空 · 下行';cls='down';quad='本质差 ＋ 时机差';prob='较高（向下）';
+  say='现实轨利空、时间轨退潮，双轨向下共振，下行概率较高，宜规避、等待出清。';}
+ else if(R<0&&timeBottom){dir='中性偏空 · 待反转';cls='mid';quad='本质差 ＋ 底部';prob='中性';
+  say='时间轨虽在底部蓄力，但现实轨还弱——等现实命脉先出现持续反转，再谈左侧机会。';}
+ else{ // R==0
+  if(timeUp||timeBottom){dir='中性偏多';cls='mid';quad='本质中性 ＋ 时机偏顺';prob='中性偏多';say='现实轨多空相抵，以时间轨节奏为主：当前偏向'+(timeBottom?'底部转身':'上行')+'，可顺势观察。';}
+  else if(timeTop||timeDown){dir='中性偏空';cls='mid';quad='本质中性 ＋ 时机转弱';prob='中性偏空';say='现实轨中性、时间轨转弱，注意拐点信号（减速·极端·松动），不宜在高位追。';}
+  else{dir='震荡 · 观望';cls='mid';quad='本质中性 ＋ 时机中性';prob='中性';say='两轨都不明朗，给的是「观望」——盯住命脉与拐点，随证据更新判断。';}
+ }
+ var html='<div class="vtop">'+
+  '<span><span class="vk">方向</span><br><span class="vv '+cls+'">'+dir+'</span></span>'+
+  '<span><span class="vk">趋势（时间轨）</span><br><span class="vv mid">'+STG[stageIdx]+(slope>0?'·上行':slope<0?'·退潮':'·走平')+'</span></span>'+
+  '<span><span class="vk">概率（双轨共振）</span><br><span class="vv '+cls+'">'+prob+'</span></span></div>';
+ html+='<span class="quad">四象限定位：'+quad+'</span>';
+ html+='<p style="margin-top:12px">'+say+'</p>';
+ html+='<p style="color:#9fb0d8;font-size:13px">判据更新：若现实轨命脉里≥3 项开始<b style="color:#fb7185">持续反转</b>，叠加时间轨出现「减速·极端·松动」拐点信号，则上面的方向就该跟着改——给的是概率与判据，不是断言。</p>';
+ document.getElementById('verdict').innerHTML=html;
+
+ STATE.lastTxt='【九柱周期推演】标的：'+STATE.subjName+'（'+STATE.subjType+'）\n'+
+  '八字：'+STATE.bz.y+' · '+STATE.bz.m+' · '+STATE.bz.d+(STATE.bz.t?(' · '+STATE.bz.t):'（时柱从略）')+'\n'+
+  '日元：'+STATE.dm+'（'+(GAN_YY[STATE.dm]?'阳':'阴')+GAN_WX[STATE.dm]+'）｜旺衰：'+STATE.ana.verdict+'（评分'+STATE.ana.score+'）\n'+
+  '时间轨阶段：'+STG[stageIdx]+'｜现实轨：'+(R>0?'偏利好':R<0?'偏利空':'中性')+'\n'+
+  '双轨结论 → 方向：'+dir+'｜概率：'+prob+'｜四象限：'+quad+'\n'+say+'\n'+
+  '边界：教学工具，不算命、不预测价格、不构成投资建议。';
+}
+
+function copyText(){var t=STATE.lastTxt;if(!t){alert('请先起盘。');return;}
+ if(navigator.clipboard)navigator.clipboard.writeText(t).then(function(){alert('已复制文字结论。');},function(){prompt('复制：',t);});
+ else prompt('复制：',t);}
+addEventListener('resize',function(){if(STATE.series)renderKline();});
+</script>
+</body>
+</html>
