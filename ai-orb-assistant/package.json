@@ -1,0 +1,24 @@
+{
+  "name": "ai-orb-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Orb Assistant —— 网页端 AI 实时语音助手（第一阶段：基础架构）",
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,magenta \"npm run dev --workspace server\" \"npm run dev --workspace client\"",
+    "dev:client": "npm run dev --workspace client",
+    "dev:server": "npm run dev --workspace server",
+    "build": "npm run build --workspace client",
+    "start": "npm run start --workspace server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}

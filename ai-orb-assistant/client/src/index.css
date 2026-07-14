@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* ===== 全局基础样式 ===== */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #05070f;
+  color: #e2e8f0;
+  font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* WebGL 不可用（老设备/被禁用）时的降级样式：一个 CSS 发光球 */
+.orb-fallback {
+  width: 260px;
+  height: 260px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, #7dd3fc, #0ea5e9 45%, #082f49 80%);
+  box-shadow:
+    0 0 60px 20px rgba(56, 189, 248, 0.35),
+    0 0 140px 60px rgba(56, 189, 248, 0.15);
+  animation: orb-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes orb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
