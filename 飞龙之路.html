@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<title>破局 · 飞龙之路</title>
+<style>
+/* ============ 基础 ============ */
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; }
+body {
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","MiSans","Microsoft YaHei",sans-serif;
+  background:#0a1524; color:#f3edde;
+  -webkit-user-select:none; user-select:none;
+  -webkit-text-size-adjust:100%;
+  touch-action:manipulation;
+  position:fixed; top:0; left:0; right:0; bottom:0; width:100%;
+}
+.serif { font-family:"Noto Serif SC","Songti SC","STSong","SimSun",serif; }
+#mapCanvas { position:fixed; top:0; left:0; right:0; bottom:0; width:100%; height:100%; display:block; }
+
+button { font-family:inherit; color:inherit; background:none; border:none; cursor:pointer; }
+button:active { transform:scale(.965); }
+
+/* ============ 通用层 ============ */
+.layer { position:fixed; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column; z-index:30; }
+.hidden { display:none !important; }
+
+/* ============ 顶部 HUD ============ */
+#hud {
+  position:fixed; top:0; left:0; right:0; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+  pointer-events:none;
+}
+#hud > * { pointer-events:auto; }
+.hud-left { display:flex; align-items:center; gap:9px; }
+.hud-logo {
+  font-size:15px; font-weight:700; letter-spacing:2px; color:#f0e2bd;
+  background:rgba(12,20,36,.72); border:1px solid rgba(232,196,118,.35);
+  padding:7px 12px; border-radius:12px; line-height:1;
+}
+.hud-right { display:flex; align-items:center; gap:8px; }
+.hud-pill {
+  display:flex; align-items:center; gap:5px;
+  background:rgba(12,20,36,.72); border:1px solid rgba(232,196,118,.3);
+  border-radius:12px; padding:7px 11px; font-size:14px; font-weight:700; color:#ffd98a;
+  line-height:1;
+}
+.hud-btn {
+  width:46px; height:46px; border-radius:14px; font-size:20px;
+  background:rgba(12,20,36,.72); border:1px solid rgba(232,196,118,.3);
+  display:flex; align-items:center; justify-content:center; color:#f0e2bd;
+}
+/* 卦象进度 */
+#hexHud {
+  display:flex; flex-direction:column-reverse; gap:4px;
+  background:rgba(12,20,36,.72); border:1px solid rgba(232,196,118,.3);
+  border-radius:12px; padding:8px 10px;
+}
+#hexHud .yao {
+  width:34px; height:5px; border-radius:3px;
+  background:rgba(240,226,189,.16);
+  transition:all .5s;
+}
+#hexHud .yao.lit {
+  background:linear-gradient(90deg,#e8c476,#ffe3a0,#e8c476);
+  box-shadow:0 0 8px rgba(255,217,138,.8);
+}
+#hexHud .yao.flash { animation:yaoFlash .9s; }
+@keyframes yaoFlash {
+  0% { transform:scaleX(.2); box-shadow:0 0 0 rgba(255,217,138,0); }
+  45% { transform:scaleX(1.35); box-shadow:0 0 24px rgba(255,217,138,1); }
+  100% { transform:scaleX(1); }
+}
+
+#mapHint {
+  position:fixed; left:0; right:0; bottom:calc(18px + env(safe-area-inset-bottom));
+  text-align:center; z-index:18; pointer-events:none;
+  animation:hintFloat 2.6s ease-in-out infinite;
+}
+#mapHint span {
+  display:inline-block; font-size:16px; color:rgba(243,237,222,.95); letter-spacing:1px;
+  background:rgba(12,20,36,.78); border:1px solid rgba(232,196,118,.28);
+  border-radius:999px; padding:9px 18px;
+}
+@keyframes hintFloat { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-5px);} }
+
+/* ============ 标题屏 ============ */
+#screen-title {
+  z-index:50; text-align:center;
+  background:radial-gradient(120% 90% at 50% 8%, rgba(23,42,72,.5), rgba(6,10,20,.88) 70%);
+  padding:24px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
+#screen-title > div { margin:auto; padding:12px 0; }
+.title-hex { display:flex; flex-direction:column-reverse; gap:9px; margin-bottom:26px; }
+.title-hex .thya {
+  width:92px; height:11px; border-radius:5px;
+  background:linear-gradient(90deg,#c9a558,#ffe3a0,#c9a558);
+  box-shadow:0 0 14px rgba(255,217,138,.55);
+  transform-origin:center; animation:hexDraw .7s both;
+}
+.title-hex .thya:nth-child(1){ animation-delay:.15s } .title-hex .thya:nth-child(2){ animation-delay:.3s }
+.title-hex .thya:nth-child(3){ animation-delay:.45s } .title-hex .thya:nth-child(4){ animation-delay:.6s }
+.title-hex .thya:nth-child(5){ animation-delay:.75s } .title-hex .thya:nth-child(6){ animation-delay:.9s }
+@keyframes hexDraw { from{ transform:scaleX(0); opacity:0 } to{ transform:scaleX(1); opacity:1 } }
+.title-camp { font-size:13px; letter-spacing:4px; color:#c8b98f; margin-bottom:10px; }
+.title-main {
+  font-size:46px; font-weight:900; letter-spacing:8px; color:#f7ecd0;
+  text-shadow:0 0 30px rgba(232,196,118,.4), 0 2px 4px rgba(0,0,0,.5);
+  margin-bottom:14px; animation:titleGlow 3s ease-in-out infinite;
+}
+@keyframes titleGlow { 0%,100%{ text-shadow:0 0 22px rgba(232,196,118,.3),0 2px 4px rgba(0,0,0,.5);} 50%{ text-shadow:0 0 44px rgba(255,217,138,.65),0 2px 4px rgba(0,0,0,.5);} }
+.title-sub { font-size:15px; color:#d8cbaa; letter-spacing:2px; margin-bottom:24px; }
+.title-story {
+  font-size:15px; line-height:2.1; color:#cfc4a6; margin-bottom:26px; letter-spacing:1px;
+}
+.title-name { margin-bottom:20px; }
+.title-name input {
+  width:220px; text-align:center; font-size:17px; color:#ffe3a0;
+  background:rgba(255,255,255,.06); border:1px solid rgba(232,196,118,.4);
+  border-radius:14px; padding:13px 16px; outline:none; letter-spacing:2px;
+  font-family:inherit;
+}
+.title-name input::placeholder { color:rgba(216,203,170,.5); }
+.title-foot { margin-top:26px; font-size:13px; color:rgba(200,185,143,.7); line-height:1.9; letter-spacing:.5px; }
+
+/* ============ 按钮 ============ */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  min-height:54px; padding:0 34px; border-radius:16px;
+  font-size:19px; font-weight:700; letter-spacing:2px;
+  transition:transform .12s, box-shadow .2s;
+}
+.btn-gold {
+  color:#3a2c10;
+  background:linear-gradient(160deg,#ffe3a0,#e8c476 55%,#d4a856);
+  box-shadow:0 6px 20px rgba(232,196,118,.35), inset 0 1px 0 rgba(255,255,255,.5);
+}
+.btn-ghost {
+  color:#e8dcbb; border:1px solid rgba(232,196,118,.45);
+  background:rgba(232,196,118,.08); min-height:48px; font-size:16px;
+}
+.btn-block { width:100%; }
+.btn[disabled] { opacity:.45; pointer-events:none; }
+
+/* ============ 面板（关卡流程） ============ */
+#panel {
+  z-index:40; background:rgba(6,10,20,.82);
+  animation:panelIn .3s;
+}
+@keyframes panelIn { from{ opacity:0 } to{ opacity:1 } }
+.panel-card {
+  flex:1; display:flex; flex-direction:column; overflow:hidden;
+  margin:calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+  background:linear-gradient(175deg, rgba(26,36,58,.97), rgba(13,19,34,.97));
+  border:1px solid rgba(232,196,118,.32);
+  border-radius:24px;
+  box-shadow:0 18px 50px rgba(0,0,0,.55);
+  position:relative;
+}
+.panel-card::before {
+  content:""; position:absolute; top:7px; left:7px; right:7px; bottom:7px; border-radius:18px;
+  border:1px solid rgba(232,196,118,.14); pointer-events:none;
+}
+.panel-top {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 18px 10px; flex:none;
+}
+.panel-close {
+  width:44px; height:44px; border-radius:50%; font-size:18px;
+  background:rgba(255,255,255,.07); color:#cfc4a6;
+  display:flex; align-items:center; justify-content:center;
+}
+.panel-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:4px 22px 20px; }
+.panel-foot { flex:none; padding:12px 22px calc(16px); display:flex; gap:12px; }
+.panel-foot .btn { flex:1; }
+
+/* 关卡引言 */
+.stage-badge {
+  display:inline-block; font-size:13px; letter-spacing:3px; color:var(--acc,#ffd98a);
+  border:1px solid var(--accd,rgba(255,217,138,.45)); border-radius:999px;
+  padding:6px 16px; margin-bottom:18px;
+}
+.stage-yao {
+  font-size:40px; font-weight:900; letter-spacing:6px; color:#f7ecd0; margin-bottom:6px;
+}
+.stage-yaosub { font-size:15px; color:var(--acc,#ffd98a); letter-spacing:2px; margin-bottom:20px; }
+.stage-lect {
+  background:rgba(255,255,255,.05); border-left:3px solid var(--acc,#e8c476);
+  border-radius:0 14px 14px 0; padding:14px 16px; margin-bottom:18px;
+  text-align:left;
+}
+.stage-lect .l1 { font-size:12px; color:#a99f83; letter-spacing:2px; margin-bottom:6px; }
+.stage-lect .l2 { font-size:18px; font-weight:700; color:#f3edde; line-height:1.5; }
+.stage-lect .l3 { font-size:14px; color:#c8bd9e; margin-top:6px; }
+.stage-desc { font-size:15px; line-height:2; color:#cfc4a6; text-align:left; margin-bottom:8px; }
+.stage-motifs { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.stage-motifs span {
+  font-size:14px; color:#e8dcbb; background:rgba(232,196,118,.12);
+  border:1px solid rgba(232,196,118,.25); border-radius:999px; padding:6px 12px;
+}
+
+/* ============ 知识卡 ============ */
+.kc-progress { display:flex; gap:6px; justify-content:center; margin:2px 0 14px; flex:none; }
+.kc-progress i {
+  width:22px; height:4px; border-radius:2px; background:rgba(240,226,189,.18); transition:background .3s;
+}
+.kc-progress i.on { background:var(--acc,#e8c476); }
+.kcard {
+  background:linear-gradient(170deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+  border:1px solid rgba(232,196,118,.24); border-radius:20px;
+  padding:24px 22px; min-height:100%;
+  display:flex; flex-direction:column;
+  animation:kcIn .32s;
+}
+@keyframes kcIn { from{ opacity:0; transform:translateX(26px);} to{ opacity:1; transform:none;} }
+.kcard.back { animation:kcInB .32s; }
+@keyframes kcInB { from{ opacity:0; transform:translateX(-26px);} to{ opacity:1; transform:none;} }
+.kcard-no { font-size:12px; letter-spacing:2px; color:var(--acc,#ffd98a); margin-bottom:12px; }
+.kcard-title { font-size:25px; font-weight:900; color:#f7ecd0; margin-bottom:16px; letter-spacing:1px; }
+.kcard-body { font-size:17px; line-height:2; color:#e2d8bd; text-align:justify; }
+.kcard-quote {
+  margin-top:auto; padding-top:18px;
+}
+.kcard-quote .q {
+  font-size:15px; line-height:1.9; color:var(--acc,#ffd98a);
+  border-top:1px dashed rgba(232,196,118,.3); padding-top:14px;
+}
+.kcard-quote .q::before { content:"💡 "; }
+
+/* ============ 答题 ============ */
+.quiz-meta { display:flex; align-items:center; gap:12px; padding:0 4px 10px; flex:none; }
+.quiz-bar { flex:1; height:6px; border-radius:3px; background:rgba(240,226,189,.14); overflow:hidden; }
+.quiz-bar i { display:block; height:100%; border-radius:3px; background:linear-gradient(90deg,var(--acc,#e8c476),#ffe3a0); transition:width .4s; }
+.quiz-count { font-size:15px; color:#c8bd9e; letter-spacing:1px; }
+.quiz-combo {
+  font-size:13px; font-weight:800; color:#ffb74d; min-width:52px; text-align:right;
+  opacity:0; transform:scale(.6); transition:all .25s;
+}
+.quiz-combo.show { opacity:1; transform:scale(1); }
+.boss-tag {
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:13px; font-weight:800; letter-spacing:2px; color:#ffb74d;
+  background:rgba(255,152,0,.12); border:1px solid rgba(255,183,77,.5);
+  padding:6px 14px; border-radius:999px; margin-bottom:14px;
+  animation:bossPulse 1.6s infinite;
+}
+@keyframes bossPulse { 0%,100%{ box-shadow:0 0 0 rgba(255,183,77,0);} 50%{ box-shadow:0 0 16px rgba(255,183,77,.5);} }
+.q-text { font-size:20px; font-weight:700; line-height:1.8; color:#f5efdc; margin-bottom:20px; }
+.q-type { font-size:14px; color:#c0b596; letter-spacing:2px; margin-bottom:8px; }
+.opt {
+  display:flex; align-items:center; gap:13px; width:100%; text-align:left;
+  background:rgba(255,255,255,.045); border:1.5px solid rgba(232,196,118,.22);
+  border-radius:16px; padding:15px 16px; margin-bottom:12px;
+  font-size:17px; line-height:1.6; color:#eee4c8;
+  transition:border .15s, background .15s;
+}
+.opt .ab {
+  flex:none; width:32px; height:32px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; font-weight:800; color:#c8bd9e;
+  background:rgba(255,255,255,.07); border:1px solid rgba(232,196,118,.25);
+}
+.opt.ok { border-color:#43d17c; background:rgba(67,209,124,.13); }
+.opt.ok .ab { background:#2e9e5b; color:#fff; border-color:#43d17c; }
+.opt.bad { border-color:#e35d5d; background:rgba(227,93,93,.12); animation:optShake .4s; }
+.opt.bad .ab { background:#b04444; color:#fff; border-color:#e35d5d; }
+.opt.dim { opacity:.45; }
+@keyframes optShake { 0%,100%{transform:none} 25%{transform:translateX(-7px)} 55%{transform:translateX(6px)} 80%{transform:translateX(-3px)} }
+
+/* 排序题 */
+.ord-slots { min-height:56px; display:flex; flex-wrap:wrap; gap:9px; padding:12px; margin-bottom:14px;
+  border:1.5px dashed rgba(232,196,118,.4); border-radius:16px; }
+.ord-slots .empty-hint { font-size:14px; color:rgba(200,185,143,.6); padding:6px 2px; }
+.ord-pool { display:flex; flex-wrap:wrap; gap:9px; }
+.chip {
+  font-size:16px; font-weight:600; color:#eee4c8; line-height:1.4;
+  background:rgba(255,255,255,.06); border:1.5px solid rgba(232,196,118,.32);
+  border-radius:12px; padding:11px 15px;
+}
+.ord-slots .chip { background:rgba(232,196,118,.16); }
+.ord-slots .chip .n { color:var(--acc,#ffd98a); font-weight:800; margin-right:6px; }
+.chip.ghost { opacity:.28; pointer-events:none; }
+
+/* 反馈 */
+.fb {
+  border-radius:18px; padding:17px 18px; margin-top:6px;
+  animation:fbIn .3s;
+}
+@keyframes fbIn { from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:none;} }
+.fb.good { background:rgba(67,209,124,.12); border:1px solid rgba(67,209,124,.45); }
+.fb.bad { background:rgba(227,93,93,.1); border:1px solid rgba(227,93,93,.4); }
+.fb .fb-h { display:flex; align-items:center; gap:9px; font-size:18px; font-weight:800; margin-bottom:8px; }
+.fb.good .fb-h { color:#7fe3a8; }
+.fb.bad .fb-h { color:#f09a9a; }
+.fb .fb-pts { margin-left:auto; font-size:15px; color:#ffd98a; }
+.fb .fb-x { font-size:16px; line-height:1.9; color:#e2d8bd; }
+
+/* ============ 结算 ============ */
+.result-wrap { text-align:center; padding-top:12px; }
+.result-yao { font-size:15px; letter-spacing:3px; color:var(--acc,#ffd98a); margin-bottom:14px; }
+.result-title { font-size:34px; font-weight:900; letter-spacing:5px; color:#f7ecd0; margin-bottom:20px; }
+.stars { display:flex; justify-content:center; gap:14px; margin-bottom:22px; }
+.stars .st { font-size:44px; filter:grayscale(1) opacity(.28); transform:scale(.6); }
+.stars .st.on { filter:none; animation:starPop .5s both; }
+.stars .st:nth-child(2).on { animation-delay:.18s } .stars .st:nth-child(3).on { animation-delay:.36s }
+@keyframes starPop { 0%{ transform:scale(.3) rotate(-30deg);} 60%{ transform:scale(1.25) rotate(8deg);} 100%{ transform:scale(1);} }
+.result-stats { display:flex; justify-content:center; gap:12px; margin-bottom:22px; flex-wrap:wrap; }
+.rstat {
+  background:rgba(255,255,255,.05); border:1px solid rgba(232,196,118,.25);
+  border-radius:16px; padding:12px 20px; min-width:88px;
+}
+.rstat .v { font-size:24px; font-weight:900; color:#ffd98a; }
+.rstat .k { font-size:12px; color:#a99f83; letter-spacing:2px; margin-top:4px; }
+.result-quote {
+  font-size:15px; line-height:2; color:#cfc4a6; padding:0 8px 6px;
+}
+.yao-award {
+  margin:6px auto 20px; width:120px; height:14px; border-radius:7px;
+  background:linear-gradient(90deg,#c9a558,#ffe3a0,#c9a558);
+  box-shadow:0 0 26px rgba(255,217,138,.8);
+  animation:awardIn .8s both;
+}
+@keyframes awardIn { 0%{ transform:scaleX(0) translateY(20px); opacity:0;} 60%{ transform:scaleX(1.2);} 100%{ transform:scaleX(1) translateY(0); opacity:1;} }
+
+/* ============ 图鉴 ============ */
+.codex-tabs { display:flex; gap:8px; overflow-x:auto; padding:2px 2px 12px; flex:none; -webkit-overflow-scrolling:touch; }
+.codex-tabs button {
+  flex:none; font-size:14px; font-weight:700; color:#c8bd9e; letter-spacing:1px;
+  border:1px solid rgba(232,196,118,.25); border-radius:999px; padding:9px 16px;
+  background:rgba(255,255,255,.04);
+}
+.codex-tabs button.on { color:#3a2c10; background:linear-gradient(160deg,#ffe3a0,#e8c476); border-color:transparent; }
+.codex-item {
+  background:rgba(255,255,255,.045); border:1px solid rgba(232,196,118,.2);
+  border-radius:16px; padding:16px 17px; margin-bottom:12px; text-align:left;
+}
+.codex-item .t { font-size:17px; font-weight:800; color:#f3e8c8; margin-bottom:8px; }
+.codex-item .b { font-size:15px; line-height:1.95; color:#d5cbae; }
+.codex-item .q { font-size:15px; line-height:1.8; color:#ffd98a; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(232,196,118,.25); }
+.codex-lock { text-align:center; padding:46px 20px; color:#8d8468; font-size:15px; line-height:2; }
+
+/* ============ 证书 ============ */
+#screen-cert { z-index:60; background:radial-gradient(130% 100% at 50% 0%, #14264a, #060a16 72%); overflow-y:auto; -webkit-overflow-scrolling:touch; display:block; }
+.cert-frame {
+  margin:calc(26px + env(safe-area-inset-top)) 18px 30px; padding:34px 22px 28px;
+  border:2px solid rgba(232,196,118,.75); border-radius:8px; position:relative;
+  background:
+    radial-gradient(90% 50% at 50% 0%, rgba(232,196,118,.09), transparent 70%),
+    linear-gradient(170deg, rgba(22,32,54,.9), rgba(10,15,28,.94));
+  text-align:center;
+}
+.cert-frame::before {
+  content:""; position:absolute; top:6px; left:6px; right:6px; bottom:6px; border:1px solid rgba(232,196,118,.4); border-radius:4px; pointer-events:none;
+}
+.cert-corner { position:absolute; width:22px; height:22px; border-color:#e8c476; border-style:solid; }
+.cert-corner.tl { top:-2px; left:-2px; border-width:3px 0 0 3px; }
+.cert-corner.tr { top:-2px; right:-2px; border-width:3px 3px 0 0; }
+.cert-corner.bl { bottom:-2px; left:-2px; border-width:0 0 3px 3px; }
+.cert-corner.br { bottom:-2px; right:-2px; border-width:0 3px 3px 0; }
+.cert-camp { font-size:12px; letter-spacing:3px; color:#b3a684; margin-bottom:16px; }
+.cert-hex { display:flex; flex-direction:column-reverse; gap:6px; align-items:center; margin-bottom:18px; }
+.cert-hex i { width:72px; height:8px; border-radius:4px; background:linear-gradient(90deg,#c9a558,#ffe3a0,#c9a558); box-shadow:0 0 10px rgba(255,217,138,.6); }
+.cert-big { font-size:38px; font-weight:900; letter-spacing:10px; color:#f7ecd0; margin-bottom:8px; text-shadow:0 0 26px rgba(232,196,118,.45); }
+.cert-sub { font-size:14px; color:#c8b98f; letter-spacing:2px; margin-bottom:22px; }
+.cert-name { font-size:26px; font-weight:800; color:#ffe3a0; letter-spacing:3px; margin-bottom:6px; }
+.cert-name-u { width:150px; height:1px; margin:0 auto 20px; background:linear-gradient(90deg,transparent,#e8c476,transparent); }
+.cert-text { font-size:14.5px; line-height:2.2; color:#cfc4a6; margin-bottom:20px; }
+.cert-stats { display:flex; justify-content:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+.cert-quote { font-size:16px; line-height:2; color:#ffd98a; margin-bottom:6px; }
+.cert-quote-src { font-size:12px; color:#8d8468; margin-bottom:20px; }
+.cert-date { font-size:13px; color:#b3a684; letter-spacing:1px; }
+.cert-actions { padding:0 18px 20px; display:flex; flex-direction:column; gap:12px; }
+.cert-tip { text-align:center; font-size:13px; color:#b3a684; padding-bottom:8px; }
+.cert-foot { text-align:center; font-size:13px; color:rgba(200,185,143,.65); line-height:1.9; padding:0 26px calc(28px + env(safe-area-inset-bottom)); }
+
+/* ============ 其他 ============ */
+#toast {
+  position:fixed; left:50%; bottom:calc(90px + env(safe-area-inset-bottom)); transform:translateX(-50%);
+  background:rgba(14,20,36,.94); border:1px solid rgba(232,196,118,.45);
+  color:#f3e8c8; font-size:15px; padding:12px 22px; border-radius:999px;
+  z-index:80; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .3s;
+  box-shadow:0 8px 26px rgba(0,0,0,.5);
+}
+#toast.show { opacity:1; }
+#fxPearl {
+  position:fixed; width:26px; height:26px; border-radius:50%; z-index:70; pointer-events:none;
+  background:radial-gradient(circle at 34% 30%, #fff, #ffe3a0 45%, #d4a856);
+  box-shadow:0 0 20px rgba(255,217,138,.95);
+}
+.dialog-mask {
+  position:fixed; top:0; left:0; right:0; bottom:0; z-index:75; background:rgba(4,7,14,.7);
+  display:flex; align-items:center; justify-content:center; padding:30px;
+}
+.dialog {
+  width:100%; max-width:330px; background:linear-gradient(175deg,#1c2842,#101828);
+  border:1px solid rgba(232,196,118,.4); border-radius:20px; padding:26px 22px; text-align:center;
+}
+.dialog .d-t { font-size:19px; font-weight:800; color:#f3e8c8; margin-bottom:12px; }
+.dialog .d-b { font-size:15px; line-height:1.9; color:#c8bd9e; margin-bottom:20px; }
+.dialog .d-row { display:flex; gap:11px; }
+.dialog .d-row .btn { flex:1; padding:0 10px; letter-spacing:1px; font-size:17px; white-space:nowrap; }
+
+@media (max-height:700px) {
+  .title-hex { margin-bottom:16px; }
+  .title-hex .thya { width:72px; height:8px; }
+  .title-main { font-size:38px; margin-bottom:10px; }
+  .title-story { line-height:1.9; margin-bottom:18px; }
+  .title-foot { margin-top:16px; }
+}
+@media (min-width:700px) {
+  .panel-card { max-width:560px; margin-left:auto; margin-right:auto; width:100%; }
+  .cert-frame { max-width:520px; margin-left:auto; margin-right:auto; }
+  .cert-actions { max-width:520px; margin:0 auto; }
+}
+</style>
+</head>
+<body>
+<canvas id="mapCanvas"></canvas>
+
+<!-- 顶部 HUD -->
+<div id="hud" class="hidden">
+  <div class="hud-left">
+    <div class="hud-logo serif">飞龙之路</div>
+    <div id="hexHud" title="乾卦进度">
+      <i class="yao" data-y="0"></i><i class="yao" data-y="1"></i><i class="yao" data-y="2"></i>
+      <i class="yao" data-y="3"></i><i class="yao" data-y="4"></i><i class="yao" data-y="5"></i>
+    </div>
+  </div>
+  <div class="hud-right">
+    <div class="hud-pill">✦ 修为 <span id="hudScore">0</span></div>
+    <button class="hud-btn" id="btnCodex" title="知识图鉴">📖</button>
+    <button class="hud-btn" id="btnSound" title="音效">🔊</button>
+  </div>
+</div>
+<div id="mapHint" class="hidden"><span>点带「▶ 开始」牌子的浮岛开始闯关 · 上下滑动看全图</span></div>
+
+<!-- 标题屏 -->
+<div id="screen-title" class="layer">
+  <div>
+    <div class="title-hex">
+      <i class="thya"></i><i class="thya"></i><i class="thya"></i>
+      <i class="thya"></i><i class="thya"></i><i class="thya"></i>
+    </div>
+    <div class="title-camp">AI 时代个人破局训练营 · THLDL 大课堂</div>
+    <div class="title-main serif">飞龙之路</div>
+    <div class="title-sub">六讲通关 · 知识修行之旅</div>
+    <div class="title-story serif">
+      六讲课程，化作六重爻境。<br>
+      从水底潜龙，到一飞冲天，<br>
+      每过一关，点亮一爻；集齐六爻，铸成乾卦。
+    </div>
+    <div class="title-name">
+      <input id="nameInput" maxlength="8" placeholder="道友请留名（可不填）">
+    </div>
+    <button class="btn btn-gold" id="btnStart">开 始 修 行</button>
+    <div class="title-foot">
+      本游戏为课程知识复习工具 · 不算命 · 不荐股 · 不承诺收益<br>
+      所有内容源自训练营六讲讲稿 · 决策和风险，永远由你自己承担
+    </div>
+  </div>
+</div>
+
+<!-- 关卡流程面板 -->
+<div id="panel" class="layer hidden">
+  <div class="panel-card">
+    <div class="panel-top">
+      <div id="panelCrumb" style="font-size:13px;color:#a99f83;letter-spacing:2px;"></div>
+      <button class="panel-close" id="btnPanelClose">✕</button>
+    </div>
+    <div id="panelKcDots" class="kc-progress hidden"></div>
+    <div id="panelQuizMeta" class="quiz-meta hidden">
+      <div class="quiz-count" id="quizCount"></div>
+      <div class="quiz-bar"><i id="quizBarFill" style="width:0%"></i></div>
+      <div class="quiz-combo" id="quizCombo"></div>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+    <div class="panel-foot" id="panelFoot"></div>
+  </div>
+</div>
+
+<!-- 图鉴 -->
+<div id="screen-codex" class="layer hidden">
+  <div class="panel-card">
+    <div class="panel-top">
+      <div style="font-size:16px;font-weight:800;color:#f3e8c8;letter-spacing:3px;">📖 知识图鉴</div>
+      <button class="panel-close" id="btnCodexClose">✕</button>
+    </div>
+    <div style="padding:0 18px;"><div class="codex-tabs" id="codexTabs"></div></div>
+    <div class="panel-body" id="codexBody"></div>
+  </div>
+</div>
+
+<!-- 证书 -->
+<div id="screen-cert" class="layer hidden">
+  <div class="cert-frame">
+    <i class="cert-corner tl"></i><i class="cert-corner tr"></i>
+    <i class="cert-corner bl"></i><i class="cert-corner br"></i>
+    <div class="cert-camp">AI 时代个人破局训练营 · THLDL 大课堂</div>
+    <div class="cert-hex">
+      <i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+    <div class="cert-big serif">破 局 者</div>
+    <div class="cert-sub">六爻已成 · 乾卦铸就</div>
+    <div class="cert-name serif" id="certName">潜龙道友</div>
+    <div class="cert-name-u"></div>
+    <div class="cert-text">
+      恭喜你走完六重爻境——<br>
+      看见了这场产业革命，用上了自己的 AI 团队，<br>
+      看懂了财富地图，戴上了两副眼镜，<br>
+      请回了先生，亲手迈出了第一步。<br>
+      从今晚起，新一条龙，回到水底，重新蓄力。
+    </div>
+    <div class="cert-stats" id="certStats"></div>
+    <div class="cert-quote serif">天行健，君子以自强不息</div>
+    <div class="cert-quote-src">—— 《周易 · 乾卦 · 象传》</div>
+    <div class="cert-quote serif" style="font-size:14px;">用九：见群龙无首，吉</div>
+    <div class="cert-quote-src">飞到最高处，记得那条飞过头的龙</div>
+    <div class="cert-date" id="certDate"></div>
+  </div>
+  <div class="cert-actions">
+    <div class="cert-tip">📸 用手机截屏保存这张证书（一般是同时按住 电源键＋音量下键），再发到班级群吧</div>
+    <button class="btn btn-ghost btn-block" id="btnCertBack">返回地图 · 温习六境</button>
+  </div>
+  <div class="cert-foot">
+    本证书为课程学习纪念 · 不算命 · 不荐股 · 不承诺收益<br>
+    判断力，一半在你的阅历里，一半在老祖宗的书里
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+var GAME_DATA = {"lectures": [{"lecture": 1, "title": "AI 时代个人破局——为什么要拥抱这次AI产业革命？", "tagline": "未来属于会使用AI的人", "key_motifs": ["三句话认知觉醒（AI已进入生活/差距在AI团队/会用与不会用之争）", "新能力公式：判断力×AI智能体数量×AI工具水平", "一人公司：不是注册形态，是全新的工作方式和能力结构", "AI四级台阶：感知→生成→智能体→具身", "助手是“大脑外接设备”，Agent是“数字员工”"], "knowledge_cards": [{"title": "三句话觉醒", "body": "今晚只干一件事：完成一次AI时代的认知觉醒。请把三句话写在笔记本第一页：第一，AI不是未来，它已经在你的工作和生活里；第二，未来人与人的差距，不是学历的差距，而是有没有自己的AI团队；第三，未来的竞争，发生在会使用AI的人与不会使用AI的人之间。", "quote": "未来不是人与 AI 的竞争，而是会使用 AI 的人，与不会使用 AI 的人的竞争。"}, {"title": "新能力公式", "body": "以前，一个人的能力＝自己的时间×自己的经验，所以拼加班、拼熬年头。现在公式变了：能力＝自己的判断力×AI智能体的数量×AI工具的水平。时间不再是你的天花板——你睡觉的时候，你的AI团队还在干活。看懂这个公式，你就看懂了“一人公司”：它不是注册形态，而是全新的工作方式和能力结构。", "quote": "一个人的能力 ＝ 自己的判断力 × AI 智能体的数量 × AI 工具的水平。"}, {"title": "生产资料开放", "body": "把时间拉长一百年看：农业时代土地决定财富，工业时代机器决定财富，互联网时代信息决定财富，AI时代智能决定财富。前三次的核心生产资料都非常贵，普通人最多当乘客甚至看客；而这一次，智能一个月几十块钱甚至免费。这是历史上第一次，最先进的生产资料摆在了每个普通人面前。", "quote": "人类历史上第一次，最先进的生产资料，向普通人敞开了大门。"}, {"title": "助手与员工", "body": "AI团队分两层。第一层是AI助手——ChatGPT、Claude、DeepSeek、Kimi、智谱，定位是你的“大脑外接设备”：你问一句它答一句，不问就不动。第二层是Agent智能体——如OpenClaw（个人AI操作系统）、WorkBuddy（AI电脑助手），你交代一个目标，它自己想办法干完，这才是真正的“数字员工”。", "quote": "普通 AI：你问，它回答。Agent（智能体）：你给目标，它执行。"}, {"title": "会说话即编程", "body": "开发软件不再是程序员的专利：自然语言就是新的编程语言，你会说话，你就会“编程”。你说“帮我做一个旅游网站”，AI自己完成设计、写代码、测试、修改，不满意就用大白话提要求。这种方式叫Vibe Coding，是计算机诞生以来第一次真正的“平权”：计算机的能力，从此属于每一个想清楚自己要什么的人。", "quote": "未来最大的“程序员”，不一定是写代码最多的人，而是最知道自己需要什么的人。"}, {"title": "两副眼镜", "body": "去一座陌生城市开车，你需要两样东西：GPS导航告诉你路怎么走，这是科技这副眼镜，看“空间”，管未来在哪里；天气预报告诉你什么时候踩油门、什么时候稳一稳，这是易学这副眼镜，看“时间”，管变化何时发生。两副眼镜一起戴，你看世界的清晰度完全不一样。注意：易学只练周期意识，绝不是算命。", "quote": "科技，帮助你理解时代；易学，帮助你理解变化。"}, {"title": "三条破局路", "body": "落到个人身上，AI时代财富地图上有三条路：一是AI赋能职业——不冒险，成为单位里最会用AI的那个人；二是AI辅助创业——一个人带一支AI团队做“轻生意”，启动成本低、试错代价小；三是AI理解投资——先看懂产业再谈投资，认知永远走在决策前面。三条路不是让人人当投资者，而是让普通人拥有主动选择未来的能力。", "quote": "未来真正决定你财富的，往往不是你有没有“抓住”某一次机会，而是你有没有“避开”某一次重大的判断失误。"}], "quiz": [{"type": "single", "question": "按讲稿的百年规律梳理，AI 时代最核心的生产资料（决定财富的关键变量）是什么？", "options": ["土地", "机器", "信息", "智能"], "answer": 3, "explain": "讲稿梳理：农业时代土地、工业时代机器、互联网时代信息决定财富；AI时代智能决定财富，且第一次向普通人敞开大门。"}, {"type": "order", "question": "请按讲稿的时代顺序，排列每个时代“决定财富”的核心生产资料。", "options": ["土地（农业时代）", "机器（工业时代）", "信息（互联网时代）", "智能（AI时代）"], "answer": 0, "explain": "讲稿按百年规律排列：农业时代靠土地，工业时代靠机器，互联网时代靠信息，AI时代靠智能——每次技术革命都重新分配财富。"}, {"type": "single", "question": "讲稿给出的“新的能力公式”是哪一个？", "options": ["一个人的能力＝自己的时间×自己的经验", "一个人的能力＝自己的判断力×AI智能体的数量×AI工具的水平", "一个人的能力＝学历×人脉×运气", "一个人的能力＝判断力×加班时长×员工人数"], "answer": 1, "explain": "旧公式是时间×经验，拼加班熬年头；新公式是判断力×AI智能体数量×AI工具水平，这是看懂“一人公司”的钥匙。"}, {"type": "tf", "question": "判断：讲稿中的“一人公司”是一种公司注册形态，讲师是在劝大家明天就去注册公司创业。", "options": ["对", "错"], "answer": 1, "explain": "讲稿专门澄清：“一人公司”不是公司注册形态，也不是劝你明天就创业，而是一种全新的工作方式、一种全新的能力结构。"}, {"type": "single", "question": "按讲稿，“AI 助手”与“Agent（智能体）”最关键的区别是什么？", "options": ["助手免费，智能体全部收费", "助手是国外产品，智能体是国内产品", "助手你问一句它答一句；智能体你给它目标，它自己执行", "助手只能写文字，智能体只能画图"], "answer": 2, "explain": "讲稿说助手“你问它答，不问不动”；员工的标准是交代一个目标，它自己想办法干完，不用盯每一步——这就是Agent。"}, {"type": "order", "question": "请按讲稿的“技术进度条”，排出这波 AI 爬的四级台阶的正确顺序。", "options": ["感知智能——机器学会“看”", "生成式AI——机器学会“说”", "智能体（Agent）——机器学会“做”", "具身智能——机器学会“动手”"], "answer": 0, "explain": "讲稿的四级台阶：感知智能会看（认人脸听语音），生成式AI会说（写字画图），智能体Agent会做（替你干活），具身智能会动手（走进工厂家庭）。"}, {"type": "single", "question": "讲稿说“我们正站在哪一级台阶的开幕时刻”？", "options": ["感知智能", "生成式AI", "具身智能", "智能体（Agent）"], "answer": 3, "explain": "讲稿明确说：我们正站在第三级台阶——智能体（Agent）的开幕时刻，机器从“会说”跨进了“会做”。"}, {"type": "single", "question": "讲稿给 OpenClaw 的定位是什么？", "options": ["AI电脑助手，帮你自动点鼠标、填表格", "个人 AI 操作系统", "一款带语音输入的输入法", "一个开源代码社区"], "answer": 1, "explain": "讲稿定位OpenClaw为“个人AI操作系统”，把模型、电脑、文件、工具连接成你自己的AI员工；“AI电脑助手”说的是WorkBuddy。"}, {"type": "tf", "question": "判断：按讲稿的说法，想用 Claude Code 这类工具创造软件，必须先系统学习几年编程。", "options": ["对", "错"], "answer": 1, "explain": "讲稿说：自然语言就是新的编程语言，你会说话就会“编程”；这些工具没有一个需要你懂代码，你需要的是想清楚要什么。"}, {"type": "single", "question": "在“两副眼镜”的比喻中，易学这副眼镜对应的是什么？", "options": ["GPS导航——帮你看“空间”", "后视镜——帮你看过去", "天气预报——帮你看“时间”", "显微镜——帮你看细节"], "answer": 2, "explain": "比喻里科技是GPS导航，管空间、看路在哪；易学是天气预报，管时间、看变化的节奏——什么时候踩油门、什么时候稳一稳。"}, {"type": "tf", "question": "判断：讲稿明确规定，“易学/周期”这副眼镜只定位为文化认知与周期意识，不是算命，也不预测涨跌。", "options": ["对", "错"], "answer": 0, "explain": "合规红线原话：易学这副眼镜全程只能定位为“文化认知、周期意识、看变化的思维方式”，绝不可表述为算命、预测涨跌。"}, {"type": "order", "question": "请排出讲稿中“能力与财富关系”的五步逻辑链的正确顺序。", "options": ["AI 革命", "生产效率大幅提升", "产业重新分配", "资本重新定价", "理解产业的人，拥有认知优势"], "answer": 0, "explain": "讲稿的逻辑链：AI革命带来效率大幅提升，进而产业重新分配、资本重新定价，最终是“理解产业的人，拥有认知优势”——不是买了什么就赚钱。"}, {"type": "order", "question": "讲稿预告的“三幕剧”九字口诀，请按正确顺序排列三幕。", "options": ["先修管道", "再压成本", "最后抢入口"], "answer": 0, "explain": "讲稿说这是统治信息产业一百多年的规律，财富按“管道→压缩→入口”三幕重演，口诀九个字：先修管道，再压成本，最后抢入口。"}, {"type": "single", "question": "“不冒险，把 AI 变成职业杠杆，成为单位里最会用 AI 的那个人”——这是三条破局路径中的哪一条？", "options": ["AI 赋能职业", "AI 辅助创业", "AI 理解投资", "AI 具身智能"], "answer": 0, "explain": "第一条路就是AI赋能职业：不冒险，把AI变成职业杠杆，成为单位里最会用AI的人——讲稿说未来两三年光这一条就足以拉开差距。"}], "boss": {"type": "single", "question": "结课时讲师说：“这一次，你可以坐进驾驶位——因为方向盘，历史上第一次，递到了普通人手里。”综合全课，这次 AI 革命对普通人是“历史上第一次”的机会，最根本的原因是什么？", "options": ["AI 能替普通人预测市场涨跌，跟着操作就能稳赚不赔", "只要注册一家“一人公司”，就能自动分到 AI 时代的财富", "核心生产资料“智能”第一次以每月几十块甚至免费的成本向普通人开放，人人都能按“判断力×智能体数量×工具水平”组建自己的 AI 团队，从乘客变成司机", "AI 将淘汰所有岗位，人人都必须转行去写代码"], "answer": 2, "explain": "讲稿的灵魂：前三次革命的生产资料——土地、机器、服务器和流量——都非常贵，普通人最多当乘客甚至看客；这一次“智能”几十块甚至免费向所有人开放，能力公式改写为判断力×智能体数量×工具水平，所以方向盘第一次递到普通人手里。A是讲稿明令禁止的收益承诺与算命式表述；B混淆了“一人公司不是注册形态”；D与“未来不会淘汰所有人、你不需要懂代码”直接相悖。"}, "boundary": "这门课卖的是“认知与能力”，不是“财富代码”：①不承诺收益——不保证“学完就能赚钱”，谁保证稳赚不赔谁就是骗子，包括讲师在内；②不算命——易学/周期只讲文化认知、周期意识与分寸感，不占卜、不预测涨跌、不算哪天买卖；③不荐股、不碰钱——全课不推荐任何具体买卖标的，提到的工具与公司仅为教学案例，不构成推荐；④投资有风险，最终决策与风险永远由你自己承担；⑤慢就是快——没有一夜暴富，先学会避开追涨杀跌、听消息乱买等致命错误。"}, {"lecture": 2, "title": "AI 时代生产力革命——如何拥有你自己的 AI 团队", "tagline": "从看见到用上，配齐AI员工团队", "key_motifs": ["能力公式：自己的判断力 × AI智能体的数量 × AI工具的水平", "五个岗位编制表：按岗位记，不按产品名字记", "三句口诀：给谁、要什么、什么样子；不满意就返工；让它先问你", "够得着：世界第一梯队的AI，离你只有一个下载键", "最佳配置：AI有执行力没判断力，你有判断力缺执行力"], "knowledge_cards": [{"title": "第四次革命", "body": "农业时代财富看土地，工业时代看机器，互联网时代看信息，AI时代看智能。前三次革命门票太贵，普通人最多当乘客甚至看客；这一次，智能这个生产资料下载注册就能用，多数功能不要钱——人类历史上头一回，普通人和巨头用上了同一档的生产资料。剩下的问题只有一个：你伸不伸手。", "quote": "前三次革命，最贵的是生产资料；这一次，生产资料几乎免费——最值钱的，变成了你的判断力和你的需求。"}, {"title": "能力公式", "body": "一个人的能力＝自己的判断力×AI智能体的数量×AI工具的水平。做内容、教与学、做生意、留住往事四组\"过去→现在\"对照里，变的是什么？不是那个人变聪明了，是他身后多了一排\"员工\"：判断还是他的判断，主意还是他的主意——执行，交出去了。这就是公式落在日子里的样子。", "quote": "过去，一个人能力的上限是他的时间；现在，一个人能力的上限是他的想法。"}, {"title": "五岗编制表", "body": "别按产品名字记AI——产品半年一换，记不过来；按\"岗位\"记：工具是\"人\"，会换；岗位是\"坑\"，不会变。你的第一批编制五个岗：AI秘书（问答写作总结翻译）、AI研究员（你给目标它自己干完出报告）、AI办公助手（把重复的活整建制交出去）、AI程序员（用说话的方式做软件）、AI设计/AI视频（出图出片）。", "quote": "工具会换代，岗位不会——秘书、研究员、办公、程序员、设计，这五个坑，从今晚起一个一个占上。"}, {"title": "三句口诀", "body": "跟AI员工说话的手艺就三句：第一句，交代清楚三样——给谁、要什么、什么样子，\"帮我写点东西\"是废话；第二句，不满意就返工，别客气，你越敢提要求它出的活越像样；第三句，让它先问你——\"你先问我几个问题，问清楚了再干\"。另加安全分寸：身份证号、银行卡号、密码，不发给任何AI。", "quote": "工具是它的事，说清楚，是你的事。"}, {"title": "够得着", "body": "国产AI真正的价值不止\"站在世界第一梯队\"，更是三个字：够得着——不用翻墙、不用外币、不用求人，应用商店搜索下载、手机号注册就行。行业半年一变，会被淘汰的只有工具，不会被淘汰的是\"把话说清楚、把活验收好\"的本事。就像学开车：先把驾照拿了，车，随时可以换。", "quote": "世界第一梯队的 AI，离你只有一个下载键。别纠结用哪家——先用起来，最重要。"}, {"title": "最佳配置", "body": "AI最强的是执行力：写画算查做，快、不累、不抱怨、随叫随到；最弱的是判断力：不知道什么重要、哪句话不能说、哪条合同埋着雷。年轻人学AI快却最缺判断力，而AI补不了这个；你攒了三十年的判断力、经验、分寸感，缺的恰是AI能补的执行力。AI这块拼图的形状，和你缺的那一块，严丝合缝。", "quote": "这场革命里，最稀缺的不是会敲代码的手，是能拍板的眼。"}, {"title": "当场做一个", "body": "空口无凭——当着全班的面做一个：从公屏挑一位同学的真实需求，当场用AI做出来、当场发给他。方向优先选\"心里那件事\"，不选\"手里那摊活\"：睡前故事册、人生小传、聚会纪念册——因为效率对各位不稀罕，稀罕的是五个字：这跟我有关。第一版做得糙没关系，第一版的意义是\"存在\"。", "quote": "会用 AI 的人和不会用 AI 的人，差距，从今天晚上开始拉开。"}], "quiz": [{"type": "single", "question": "本讲反复引用的能力公式是：一个人的能力＝自己的判断力 × （ ） × AI工具的水平。括号里应填什么？", "options": ["使用AI的时长", "AI智能体的数量", "记住的工具名字数量", "AI员工的工资"], "answer": 1, "explain": "讲稿开场回顾的公式：一个人的能力＝自己的判断力×AI智能体的数量×AI工具的水平。\"时长\"\"工具名字数量\"都不是公式里的项。"}, {"type": "tf", "question": "前三次技术革命的核心生产资料——土地、机器、服务器与流量——都很昂贵，普通人很难直接拥有。", "options": ["对", "错"], "answer": 0, "explain": "这是作业判断题原题。讲稿第一章原话：前三次革命门票太贵，土地几代人攒不出，机器摸不着，做网站几十万起步，普通人最多当乘客甚至看客。"}, {"type": "single", "question": "下列哪一项不属于本讲《我的 AI 员工编制表》里的五个岗位？", "options": ["AI 研究员", "AI 办公助手", "AI 秘书", "AI 会计"], "answer": 3, "explain": "讲稿的五个岗位是：AI秘书、AI研究员、AI办公助手、AI程序员、AI设计/AI视频。\"AI会计\"不在编制表里。"}, {"type": "tf", "question": "AI 助手和 AI 智能体是一回事，都是\"你问一句、它答一句\"。", "options": ["对", "错"], "answer": 1, "explain": "作业原题，答案为错。讲稿明确：助手是\"你问一句、它答一句\"，智能体是\"你给目标、它自己干完\"——助手是参谋，智能体才是员工。"}, {"type": "order", "question": "请按讲稿里四次生产力革命的先后顺序，排列各时代的核心生产资料。", "options": ["土地", "机器", "信息", "智能"], "answer": 0, "explain": "讲稿：农业时代财富看土地，工业时代看机器，互联网时代看信息，现在第四次来了——AI时代，财富看智能。"}, {"type": "single", "question": "关于人机关系的逆转，讲稿的原话是：不是你去学机器的语言，是机器终于学会了什么？", "options": ["写代码", "背字根", "听人话", "记函数"], "answer": 2, "explain": "作业填空原题。讲稿说过去是人迁就机器——背字根、记函数；从今往后反过来：你不需要学会跟机器说话，是机器终于学会了听人话。"}, {"type": "tf", "question": "给 AI 交代任务的三要素是：给谁、要什么、什么样子。", "options": ["对", "错"], "answer": 0, "explain": "作业原题，答案为对。口诀第一句：交代清楚三样——给谁、要什么、什么样子。\"帮我写点东西\"是废话，说清三样才是任务。"}, {"type": "order", "question": "请按讲稿顺序排列\"跟 AI 员工说话\"的三句口诀。", "options": ["交代清楚三样：给谁、要什么、什么样子", "不满意就返工，别客气", "拿不准时让它先问你，问清楚了再干"], "answer": 0, "explain": "讲稿三句口诀顺序：第一句交代清楚三样；第二句不满意就返工，它不嫌烦不记仇；第三句让它先问你——让员工反过来采访老板。"}, {"type": "single", "question": "关于 Claude Code（AI 程序员岗最强工具之一），本讲把它定位成什么？", "options": ["今晚的行动项，回去必须安装", "认知项：知道有这么个东西即可，起步可在国产助手里用大白话生成网页版", "编制表五个岗位之外的第六个岗位", "国内可直接注册的AI秘书工具"], "answer": 1, "explain": "讲稿明确：Claude Code\"今晚它是认知项，不是你的行动项\"；行动项是在AI秘书里把想要的小工具说清楚，先生成网页版。"}, {"type": "tf", "question": "只要用上最好的 AI 工具，就一定能赚到钱。", "options": ["对", "错"], "answer": 1, "explain": "作业原题，答案为错。讲稿边界：工具不承诺收益，判断和决策在自己；本课不承诺收益、不荐股、不算命。"}, {"type": "single", "question": "讲稿说国产 AI 对普通人真正的价值是\"够得着\"，指的是什么？", "options": ["不用翻墙、不用外币、不用求人，应用商店一个下载键就能用上", "国产AI全部功能对所有人永久免费", "国产AI已远远超过国外所有工具", "国家统一给每个人发放AI账号"], "answer": 0, "explain": "讲稿：国外顶级AI要过几道关，国产的只有一道关——下载、手机号注册。同时提醒免费额度以各平台说明为准，并非全部永久免费。"}, {"type": "single", "question": "《我的 AI 员工编制表》里，下列哪种填法是讲稿认可的\"合格填法\"？", "options": ["秘书——帮我提高效率", "秘书——有空的时候随便帮帮我", "AI秘书——每周日晚上，把我下周要办的事列成清单，按轻重排好", "秘书——什么活都干"], "answer": 2, "explain": "讲稿给的合格示范正是这一行：有时间、有事项、有要求。\"帮我提高效率\"不合格——员工接不住这种活，你自己也验收不了。"}, {"type": "order", "question": "请排列第六章\"当场做一个\"现场环节的正确流程。", "options": ["同学用一两分钟讲清想要什么", "讲师当众翻译成任务：给谁、要什么、什么样子", "提交给AI，开始生成", "出结果，讲师当众念其中一页", "当场发给这位同学，同时发到班级群"], "answer": 0, "explain": "讲稿现场流程：先听需求，再翻译成三要素任务，然后提交生成（等待时间讲落点），出结果念一页，最后当场交付并发群。"}, {"type": "single", "question": "按讲稿的安全提醒，哪类信息不应该发给任何 AI？", "options": ["聚会邀请的写作需求", "身份证号、银行卡号、密码", "想整理成册的老照片和往事", "每周重复做、最烦的那件事"], "answer": 1, "explain": "讲稿：身份证号、银行卡号、密码这类要紧信息不要发给任何AI——好老板从来不把保险柜钥匙交给刚入职的员工。"}], "boss": {"type": "single", "question": "下课路上，朋友问你：\"这一讲到底讲了个什么道理？\"哪一段转述最完整、最准确地抓住了本讲的灵魂？", "options": ["生产资料第一次几乎免费，普通人按\"岗位\"配齐五个AI员工，用\"给谁、要什么、什么样子\"去指挥；你出判断力，AI补执行力——差距从动手这一晚开始拉开", "国外AI最强，先攻克注册、付费、网络几道关用上顶级工具，才算真正入场", "把市面上的AI产品名字都记全，等行业格局定了，再挑最好的一家认真学", "AI的判断力已超过人，把决策和验收都交给AI，人只负责提出想法"], "answer": 0, "explain": "讲稿主线正是：生产资料几乎免费→按岗位配团队→三句口诀指挥→你出判断力、AI补执行力。B违背\"行动项全是国内工具\"，C违背\"按岗位记、别等格局定\"，D违背\"AI没判断力，验收的人永远是你\"。"}, "boundary": "本讲教的是能力，不是财富代码：不承诺收益、不荐股、不算命，决策和风险永远在你自己。所有提到的工具与公司都是教学案例，不构成任何推荐或商业代言；免费与价格均为市场常见量级举例，不是报价；所有效率变化都是\"正在发生的机会\"，不是对任何人收入的承诺，不出现\"能多赚多少\"\"跟上就赚\"。不做中外产品优劣的绝对判断，不用民族对立式表述；现场作品仅为教学演示，不承诺每位学员达到同等效果，涉及学员照片与个人经历须本人明确同意方可展示传播。"}, {"lecture": 3, "title": "AI 时代财富地图——未来十年的机会在哪里", "tagline": "看懂钱往哪走，选好自己的路", "key_motifs": ["三幕剧九字口诀：先修管道、再压成本、最后抢入口", "财富＝科技×周期×人性（乘法，不是加法）", "AI 产业四层地图：算力—模型—应用—机器人", "两把尺子：炒作曲线量情绪，渗透率S曲线量产业", "普通人三条路径：提升自己、创造内容、生态服务"], "knowledge_cards": [{"title": "财富总纲公式", "body": "财富＝科技×周期×人性。科技决定钱流向哪里，周期决定我们现在处在哪个阶段，人性决定机会最后能不能落到你身上。最要命的细节：它是乘法，不是加法——加法宽容，乘法残酷，任何一项接近零，总成绩就接近零。方向看对了、阶段踩对了，你自己不动手，照样归零。", "quote": "财富 ＝ 科技 × 周期 × 人性"}, {"title": "四层产业地图", "body": "AI 产业从下往上四层：算力基础设施层是修路发电、卖铲子的，芯片、服务器、数据中心都在这层；模型能力层是做发动机的，大模型就是这个时代的发动机；AI 应用层是造汽车的，凡是“AI＋一个具体行当”都长在这层，离普通人最近；机器人与具身智能层是 AI 长出手脚，下一个十年的主戏。", "quote": "发动机再好，老百姓开的是车。"}, {"title": "三幕剧九字诀", "body": "人类信息产业一百多年，是同一出三幕大戏反复重演。第一幕修管道：新计价单位一诞生，最先赚钱的永远是修基础设施的；第二幕压成本：谁把价格打下来谁赢，AI 模型价格几年降了九成九以上，这一幕正在眼前上演；第三幕抢入口：价值往离用户最近的入口集中，这一幕还没演到。钱会在层与层之间搬家。", "quote": "先修管道，再压成本，最后抢入口——钱在四层之间搬家；今天谁吃肉，不代表永远谁吃肉。"}, {"title": "两把尺子", "body": "判断“现在几点了”不靠感觉，靠两把尺子：炒作曲线量情绪，走技术触发、期望膨胀、泡沫破裂、稳步爬升、生产成熟五段；渗透率S曲线量产业，跨过一成进爆发期，从一成到五成是最陡的一段。按“企业深度使用、真金白银持续付费”的硬口径，AI 还在爬向一成的路上——“你没有来晚”是尺子上的读数，不是安慰。", "quote": "情绪会骗人，渗透率不会——泡沫洗得掉人，洗不掉趋势。"}, {"title": "三条路径", "body": "普通人的三条路，每一条都是“做什么”，不是“买什么”：路径一用 AI 提升自己，在现有岗位成为身边第一个会用 AI 的人；路径二用 AI 创造内容，你负责“懂”，它负责“讲”，本周把第一篇发出去；路径三参与 AI 生态服务，做渗透浪潮里“接电线的电工”，第一步免费帮一个人，攒手感和口碑。", "quote": "三条路，第一步都不要钱——要的，是你本周动一次手。"}, {"title": "一人公司", "body": "一家公司里最贵的岗位不是干活最多的，是做决定的。你的一人公司里，写的、画的、查的、算的执行岗 AI 全包了，真正需要你亲自坐的只有一个岗位——做判断的那个。而判断、经验、分寸、定力，恰恰是你用三十年一天一天攒出来的。对年轻人这是“多了一群帮手”，对你是“终于等来了帮手”。", "quote": "你的一人公司里，你只坐一个岗位——做判断的那个。而这个岗位，你已经练了三十年。"}, {"title": "三个不要", "body": "越是热的时候，越要把丑话说透。一不要以为学会工具就能赚钱——工具是放大器，放大判断力也放大糊涂，谁保证你“学完稳赚”谁就是骗子；二不要相信任何速成——“三天学会”“月入十万”出现的地方通常没有真东西，当年蹭热点的套路如今会来蹭 AI；三不要把 AI 当神也别当敌人——它会“幻觉”，重要的事必须自己核实。", "quote": "工具放大判断，也放大糊涂——AI 替你干活，不替你负责。"}], "quiz": [{"type": "single", "question": "本讲要求原样抄下来的“课程总纲”公式是哪一个？", "options": ["财富＝科技＋周期＋人性", "财富＝科技×周期×人性", "财富＝判断力×AI智能体数量×AI工具水平", "财富＝方向×结构×阶段"], "answer": 1, "explain": "讲稿总纲：财富＝科技×周期×人性，并强调是乘法不是加法，任何一项接近零总成绩就接近零。C 是“一个人的能力”公式，不是财富总纲。"}, {"type": "order", "question": "请按“三幕剧”九字口诀的正确顺序排列。", "options": ["修管道", "压成本", "抢入口"], "answer": 0, "explain": "讲稿九字口诀：先修管道、再压成本、最后抢入口——最先赚钱的是修基础设施的，接着拼谁把价格打下来，最后价值向离用户最近的入口集中。"}, {"type": "tf", "question": "AI 产业的四层结构是：算力基础设施层、模型能力层、AI 应用层、机器人与具身智能层。", "options": ["对", "错"], "answer": 0, "explain": "讲稿第二章明确：AI 产业从下往上四层——算力基础设施层、模型能力层、AI 应用层、机器人与具身智能层，课后判断题参考答案为√。"}, {"type": "single", "question": "第一层“算力基础设施层”在讲稿里对应的比喻是？", "options": ["做发动机的", "造汽车的", "卖铲子的、修路发电的", "AI 长出手脚"], "answer": 2, "explain": "讲稿说第一层是“修路、发电的”“卖铲子的”，即三幕剧里的管道派；做发动机的是模型层，造汽车的是应用层，长出手脚的是机器人层。"}, {"type": "tf", "question": "“三幕剧”告诉我们，产业价值会永远停留在最先赚钱的那一层。", "options": ["对", "错"], "answer": 1, "explain": "讲稿明确：价值不会永远停在某一层，它会搬家——“今天第一层吃肉，不代表永远第一层吃肉”，课后参考答案标为✗。"}, {"type": "single", "question": "按讲稿的判断，这一轮 AI 目前正演到三幕剧的哪一幕？", "options": ["第一幕：修管道", "第二幕：压成本", "第三幕：抢入口", "三幕已经全部演完"], "answer": 1, "explain": "讲稿说同等能力模型的价格短短几年降了九成九以上，“这一幕正在我们眼前上演”，指第二幕压成本；而第三幕抢入口“还没演到”。"}, {"type": "order", "question": "请按科技炒作曲线的五个阶段正确排序。", "options": ["技术触发", "期望膨胀", "泡沫破裂", "稳步爬升", "生产成熟"], "answer": 0, "explain": "讲稿第三章：炒作曲线量情绪，走五段——技术触发、期望膨胀、泡沫破裂、稳步爬升、生产成熟，2000 年前后的互联网完整演过一遍。"}, {"type": "tf", "question": "2000 年互联网泡沫破裂时，股价大跌，但互联网渗透率在其后十年一路上行——泡沫跌掉的是估值，跌不掉的是渗透率。", "options": ["对", "错"], "answer": 0, "explain": "讲稿原话：泡沫破了，股价跌掉八成，可渗透率在其后十年一路上行，一天都没停——这正是亚马逊们能从废墟里长出来的土壤。"}, {"type": "single", "question": "讲稿用哪个“硬口径”来度量 AI 的产业渗透率？", "options": ["注册了多少用户", "新闻热度和话题量", "应用的下载量", "企业真正深度用起来、真金白银持续付费"], "answer": 3, "explain": "讲稿明确不用注册人数——注册免费，量的还是情绪；硬口径是企业深度使用并持续付费，“一家企业肯按月掏钱，说明 AI 真的进了它的活儿里”。"}, {"type": "tf", "question": "按“企业深度使用并持续付费”的口径，当前 AI 渗透率已远超五成，普通人已经来不及了。", "options": ["对", "错"], "answer": 1, "explain": "讲稿说按这个硬口径，AI 渗透率眼下还在往一成那道坎爬，从一成到五成的最陡爆发段还没开始——“你没有来晚”是尺子上的读数。"}, {"type": "single", "question": "路径三“参与 AI 生态服务”的第一步是什么？", "options": ["先学会造一个自己的模型", "先收费开一个 AI 培训班", "免费帮一个人，攒手感和口碑", "先注册一家公司再说"], "answer": 2, "explain": "讲稿：路径三第一步是免费帮一个人——帮邻居装上教会、帮亲戚的店写介绍，因为这一步攒的是两样比钱金贵的东西：手感，和口碑。"}, {"type": "tf", "question": "只要学会了 AI 工具，就一定能赚到钱。", "options": ["对", "错"], "answer": 1, "explain": "三个不要第一条：不要以为学会工具就能赚钱。工具是放大器，放大判断力也放大糊涂；讲稿说“谁要是保证你学完稳赚，谁就是骗子”。"}, {"type": "order", "question": "请按讲稿收官归纳的“看产业四步法”正确排序。", "options": ["看方向（\"6+6\"与产业大势）", "看结构（四层地图）", "看阶段（两把尺子）", "看自己（三条路径）"], "answer": 0, "explain": "讲稿收官：一看方向、二看结构、三看阶段、四看自己——前三步是看世界，第四步是看自己，而第四步才是今晚真正的落点。"}, {"type": "single", "question": "讲稿说，这一次 AI 时代的“门票”是什么？", "options": ["一句话：“你想让它帮你做什么？”", "会写代码", "有足够的启动资本", "在北京、上海、深圳这样对的城市"], "answer": 0, "explain": "过去两波的门票写着技术、资本、城市、年纪四行小字；讲稿说这一次的门票是一句话——“你想让它帮你做什么？”会说这句话，你就在车上了。"}], "boss": {"type": "single", "question": "一位学员说：“AI 的新闻热度早就上过山顶了，我现在才开始学，肯定来晚了。”按本讲“两把尺子”的框架，最准确的回应是？", "options": ["情绪热度过了山顶，说明产业也见顶了，确实来晚了", "别管什么阶段，坚持用 AI 就一定能赚到钱", "情绪这把尺子可能翻过了一个高点，但按企业持续付费的硬口径，产业渗透率还在爬向一成，从一成到五成的最陡爆发段尚未开始——现在开始，是在爆发段之前先站上站台", "应该再观望几年，等第三幕“抢入口”的赢家出来之后再跟进"], "answer": 2, "explain": "讲稿第三章结论：情绪可能已过一个山顶，产业才走到山脚到半山腰之间，最陡一段还没开始，“你没有来晚”是尺子上的读数不是安慰。A 混淆了情绪与产业两把尺子，B 违反“三个不要”第一条。"}, "boundary": "本讲只讲产业、方向、行动，从头到尾不涉及任何具体投资标的的推荐与买卖建议，不构成投资建议；不承诺收益、不荐股、不算命，决策和决策的风险永远在学员自己；所有公司与历史行情均为公开信息的教学复盘，过去表现不代表未来，不得引申出“拿住就能赚”“跟上就能富”；“6+6”以公开政策文件为据，不得演绎为“国家让你买什么”；三条路径为方向性建议，不承诺任何收入与结果；“三个不要”须完整原样讲出；易学周期仅一句带过，不展开。"}, {"lecture": 4, "title": "当 AI 遇见易经——让 AI 现场写出一个“千年历法”程序", "tagline": "戴上看时间的第二副眼镜", "key_motifs": ["两副眼镜：GPS看空间，天气预报看时间", "理工科给了中国AI一双手，易经给了中国AI一颗心", "AI是硅基生命，发布日就是生辰", "命是种子，运是农时", "九柱＝先天四柱＋后天五柱"], "knowledge_cards": [{"title": "两副眼镜", "body": "开车去没去过的城市，得带两样东西：GPS导航看路怎么走，这是科技，帮你看“空间”；天气预报看什么时候走合适，这是易学，帮你看“时间”。前三讲把GPS这副眼镜完整交付，今晚起第二副眼镜正式开箱——它全程只做文化认知与周期思维，不算命、不断吉凶。"}, {"title": "卦与0和1", "body": "三百多年前，二进制之父莱布尼茨收到从北京寄来的伏羲六十四卦次序图：阴爻（断开）就是0，阳爻（连着）就是1，一卦六爻正好是一个六位二进制数，六十四卦对上0到63——坤卦000000，乾卦111111。严谨口径：不是易经发明了二进制，而是莱布尼茨亲手验证了两者是同一副骨架、同一套道理。", "quote": "计算机说的是 0 和 1，老祖宗说的是阴和阳——三千年前画卦的手，和今天写代码的手，握在了一起。"}, {"title": "一手一心", "body": "中国AI为什么强？硬的一半是理工科红利：数学教育、工程教育几十年攒出一大批人才，全球顶尖AI研究人员里本科在中国念的接近一半。软的一半是文化基因：“三十年河东”“否极泰来”这些家常话全是《易经》思想，对变化的敏感、对周期的直觉长在血脉里。两样凑齐，才有今天。", "quote": "理工科给了中国 AI 一双手，易经给了中国 AI 一颗心。"}, {"title": "硅基生命", "body": "人是碳基生命，AI住在沙子炼出的硅芯片里，所以叫硅基生命。比一比“像不像”：它有出生——发布日就是生日；有性格——不同AI答题味道不一样；有成长——训练就是上学读书；有换代——一代比一代强。顺着老祖宗“万物皆有命运”：凡有起点的东西，都能记一个清清楚楚的时间坐标。", "quote": "人是碳基生命，AI 是硅基生命——万物皆有生辰，万物皆可排盘；排的不是吉凶，是时间的坐标。"}, {"title": "命与运", "body": "命是先天的底子，出生那一刻的年月日时把底子定下来，基本不变；运是后天的时间，一年一年一直在变。命运，就是流动的“运”作用在固定的“命”上。好比种子与农时：同一颗白菜籽，春天种下蹭蹭地长，数九寒天种下颗粒无收——种子一点没变，变的是它撞上的时间。", "quote": "命是种子，运是农时。"}, {"title": "九柱一页通", "body": "“命”用先天四柱记：年柱看大背景、月柱看旺衰、日柱看它自己、时柱看细节，一柱两字合成“八字”；四柱里月柱最要紧，因为它管季节。“运”用后天五柱记：大运一步管十年，往下流年、流月、流日、流时，五个放大镜一个比一个细。四加五共九根柱子，就是给万物记时间坐标的整套刻度盘。"}, {"title": "千年考官", "body": "不懂代码的人动动嘴，用“给谁、要什么、什么样子”三句口诀交代需求，AI一杯茶的功夫写出排盘程序。验收请三千年老历法当考官：2018年1月18日立春未到，年柱仍是丁酉不是戊戌——立春才换年；2025年元旦年柱仍是甲辰、月柱停在子月——节气才换月。两道祖传考题，AI写的程序当场过关。", "quote": "过去，是人花十年去学历法；现在，是你一句话，AI 把千年历法装进一个程序。"}], "quiz": [{"type": "tf", "question": "九柱＝先天四柱＋后天五柱，一共九根。", "options": ["对", "错"], "answer": 0, "explain": "讲稿原话：四加五，一共九根柱子——先天四柱是底子，后天五柱是放大镜，合成给万物记时间坐标的整套刻度盘。"}, {"type": "tf", "question": "干支的年，从公历1月1日就换了。", "options": ["对", "错"], "answer": 1, "explain": "讲稿明确“立春才换年”：2025年元旦考题里公历翻了年，年柱仍是甲辰，要等2月3日立春才换，干支纹丝不动。"}, {"type": "tf", "question": "一个AI模型的发布日，可以看作这个“硅基生命”的生辰。", "options": ["对", "错"], "answer": 0, "explain": "讲稿说每个AI模型都有明明白白的发布日，这一天就是它的生日；硅基生命的发布日，就是它的生辰。"}, {"type": "tf", "question": "学会了排盘，就能算准一个人的命运。", "options": ["对", "错"], "answer": 1, "explain": "本课规矩：不算命、不断吉凶。排盘排的不是吉凶，是时间的坐标；九柱是文化坐标系，不是算命工具，不保证算准任何事。"}, {"type": "tf", "question": "莱布尼茨正式发表二进制论文时，把“伏羲”两个字写进了论文标题。", "options": ["对", "错"], "answer": 0, "explain": "讲稿说莱布尼茨激动到把“伏羲”写进论文标题，称这套古老的中国符号和他的二进制，讲的是同一个道理。"}, {"type": "single", "question": "四根柱子里，看旺衰、最要紧的是哪一柱？", "options": ["年柱", "月柱", "日柱", "时柱"], "answer": 1, "explain": "讲稿：四柱里月柱最要紧，因为月柱管季节——庄稼生在夏天就旺、生在寒冬就蔫，先天力气足不足是季节定的。"}, {"type": "single", "question": "关于易经与二进制的关系，讲稿要求的严谨说法是？", "options": ["易经发明了二进制", "二进制是从中国传入欧洲的", "六十四卦纯属巧合，与二进制无关", "莱布尼茨亲手验证：六十四卦与二进制是同一副骨架、同一套道理"], "answer": 3, "explain": "讲稿把话说严谨：二进制是莱布尼茨自己发明的，不能说“易经发明了二进制”；准确说法是他亲手验证两者同构。"}, {"type": "single", "question": "坤卦六根爻全是断开的横线，“翻译”成二进制是？", "options": ["000000，对应0", "111111，对应63", "101010，对应42", "011110，对应30"], "answer": 0, "explain": "阴爻（断开）是0，阳爻（连着）是1。坤卦六爻全断开即000000对应0；乾卦六爻全连着即111111对应63。"}, {"type": "single", "question": "讲稿总结中国AI强的两个来源是？", "options": ["人口红利＋政策扶持", "资本投入＋芯片产业", "理工科红利＋易经文化基因", "开源社区＋数据规模"], "answer": 2, "explain": "讲稿：硬的一半是理工科红利，软的一半是文化基因——“理工科给了中国AI一双手，易经给了中国AI一颗心”。"}, {"type": "single", "question": "大科学家玻尔往自家族徽正中间放了什么、配了哪句话？", "options": ["太极图，配“对立即互补”", "六十四卦次序图，配“物极必反”", "河图洛书，配“否极泰来”", "八卦罗盘，配“风水轮流转”"], "answer": 0, "explain": "讲稿：玻尔往族徽正中间放了太极图，配话“对立即互补”——阴和阳看着是对头，其实互相成全，这是他从量子世界悟出的道理。"}, {"type": "single", "question": "输入2018年1月18日（当年立春在2月4日），程序排出的年柱应该是？", "options": ["戊戌", "丁酉", "甲辰", "丙子"], "answer": 1, "explain": "干支的年从立春算起，这一天立春还没到，年柱仍是上一年的丁酉；多少人一看“2018”提笔就写戊戌，错就错在这一步。"}, {"type": "order", "question": "“运”的五根柱子，按由粗到细的正确顺序排列：", "options": ["大运（一步管十年）", "流年（管一年）", "流月", "流日", "流时"], "answer": 0, "explain": "讲稿把五柱比作五个放大镜，一个比一个细：先定去哪座城（大运），再找哪条街（流年），再看门牌号（流月），再往下流日、流时。"}, {"type": "order", "question": "压轴演示中，用第二讲三句口诀交代需求的正确顺序是：", "options": ["给谁", "要什么", "什么样子"], "answer": 0, "explain": "讲稿原话：“注意听，我是怎么用第二讲那三句口诀说话的——给谁、要什么、什么样子”，三句把需求一次交代清楚。"}, {"type": "order", "question": "AI现场写排盘程序的五步流程，正确顺序是：", "options": ["动嘴交代需求", "等待生成、回味要点", "打开网页试用", "请千年历法当考官验收", "提意见返工改第二版"], "answer": 0, "explain": "讲稿五步：先交代需求，等待时回味要点，出来后打开试用，再请老历法出两道考题验收，最后按“不满意就返工”改第二版。"}], "boss": {"type": "single", "question": "如果用一句话抓住本讲“第二副眼镜开箱”的灵魂，下面哪一项最准确？", "options": ["易经发明了二进制，证明中国AI注定领先世界", "科技看空间、易学看时间：AI是有生辰的硅基生命，九柱是给万物记时间坐标的文化刻度尺，一句大白话就能让AI把千年历法写成程序", "学会九柱排盘，就能替自己和公司预判吉凶、踩准行情", "有了AI排盘程序，万年历和老历法的规矩就可以淘汰了"], "answer": 1, "explain": "本讲三步：解密文化基因（严谨口径是“验证同构”而非“发明”）、立起“硅基生命与时间坐标”的认知、让AI现场写出排盘程序兑现“自然语言是新的编程语言”。A项口径失实，C项触碰“不算命、不预测”的红线，D项与“千年规矩一条不落全装进程序”相反。"}, "boundary": "易学这副眼镜全程只做文化认知与周期思维：不算命、不断吉凶、不预测涨跌；排盘是“给时间一个坐标”的文化体验，一切解读止步于史实对照的巧合之美，不当因果、不拿来算未来，不对任何人做吉凶断语；不荐股、不承诺收益，DeepSeek等引用均为公开报道史实、不构成对任何公司或产品的推荐；“硅基生命”只是帮助理解的比方，不得引申“AI有灵魂”；严谨口径是“莱布尼茨验证同构”而非“易经发明二进制”；决策和风险永远在你自己。"}, {"lecture": 5, "title": "《你的国学研究员上岗——小易陪你读懂〈易经〉》", "tagline": "读经典，练的是位置感", "key_motifs": ["一条龙的六个台阶：潜、见、乾、跃、飞、亢", "周期五台阶：启动→加速→高潮→衰退→重生", "五行相生一个圈：水生木→木生火→火生土→土生金→金生水", "判断力一半在阅历，一半在老祖宗的书里", "易经教的不是算命，是位置感"], "knowledge_cards": [{"title": "小易入职", "body": "咱们“一人公司”的第二位员工小易正式上岗：岗位是哲学应用方法研究员，驻扎钉钉 OpenClaw，跟小科坐对桌，直接汇报对象是你。它带四样本事：古籍陪读、周期讲解、每日国学晨报、技能包——昨晚用 Kimi Code 一句话写出的排盘程序，今天已装进它的技能包，成了它自己的本事。", "quote": "过去拜师要三年，如今入职只要三分钟——先生不稀缺了，肯学的人才稀缺。"}, {"title": "判断力来源", "body": "AI 越强，干活越快，“干什么、该不该、值不值”的判断力就越值钱。判断力从哪来？一半在你几十年的阅历里，谁也拿不走；另一半在老祖宗的书里——《易经》讲变化，《论语》讲做人，《道德经》讲取舍。经典是几千年攒下来的“判断力题库”，文言文这道墙，如今 AI 拆了。", "quote": "AI 越强大，判断力越值钱——判断力，一半在你的阅历里，一半在老祖宗的书里。"}, {"title": "乾卦六爻", "body": "乾卦六根全是阳爻，当成二进制 111111 就是 63，顶格的数。古人没讲大道理，用一条龙讲透了一件事从小到大的节奏：潜龙勿用（水底蓄力）、见龙在田（露头被看见）、终日乾乾（爬坡天天自省）、或跃在渊（关口抉择）、飞龙在天（高光时刻）、亢龙有悔（飞过头必后悔）。", "quote": "易经教的不是算命，是位置感——人这一生，最要紧的，是知道自己在第几爻。"}, {"title": "三图同框", "body": "把六爻连起来看：潜在水底——露头——爬坡——抉择——登顶——过头回落，这就是一条完整的曲线：起来，到顶，回落。乾卦六爻、第三讲用“两把尺子”量出的热度曲线、周期五台阶——三张图，一个形状。三千年前的老祖宗没有大数据，却把万物盛衰的节奏，刻进了六根爻里。"}, {"title": "周期五台阶", "body": "六爻是画，五台阶是话——一回事：启动、加速、高潮、衰退、重生。启动就是潜龙；加速就是见龙、乾乾；高潮就是飞龙；衰退就是亢龙；重生，就是新一轮的潜龙。拿身边的事一套全对得上：生意开张冷清、口碑起来、门口排队、对手扎堆回落、换个花样重新来。", "quote": "重生不是完了，是新一轮的启动——圈，是转着走的。"}, {"title": "五行相生", "body": "金木水火土怎么个“生”法？记五个生活画面：浇水，树就长——水生木；柴禾点着火——木生火；火烧完灰归土——火生土；金属矿从土里挖——土生金；铁器上凝水珠（传统说法）——金生水。水又去浇树，转回来了。一个转了三千年的圈，今晚记住顺序就行。"}, {"title": "双人分工", "body": "一人公司凑齐两位员工：小科管“现实”——查资料、盯产业、写报告，戴科技眼镜，看“空间”；小易管“时间”——读经典、讲周期、陪你读书，戴易学眼镜，看“周期”。那你干什么？你只干一件事：判断。这，就是老板。日常问它记住口诀：先说给谁听，再说要多白。", "quote": "昨晚你造了一件工具，今晚它成了员工的本事——这，就是普通人组装 AI 团队的样子。"}], "quiz": [{"type": "single", "question": "乾卦从下往上数，第一爻是哪一爻？", "options": ["亢龙有悔", "潜龙勿用", "飞龙在天", "见龙在田"], "answer": 1, "explain": "讲稿末尾自测原题：第一爻是潜龙勿用——龙还潜在水底，本事再大先别出手；亢龙有悔是飞过头的第六爻。"}, {"type": "tf", "question": "“亢龙有悔”提醒的是：越到顶上，越要冷静。", "options": ["对", "错"], "answer": 0, "explain": "讲稿说亢龙有悔就是物极必反，“凡是疯抢的顶点，都是这一爻”，越是顶上越要清醒——自测题参考答案为对。"}, {"type": "tf", "question": "读《易经》，主要是为了占卜吉凶。", "options": ["对", "错"], "answer": 1, "explain": "讲稿反复强调：《易经》教的不是算命，是位置感，读的是判断力和周期思维——自测题参考答案为错。"}, {"type": "tf", "question": "五行相生里，木生火。", "options": ["对", "错"], "answer": 0, "explain": "相生口诀：水生木、木生火、火生土、土生金、金生水。讲稿的生活画面是“柴禾，点着火——木生火”。"}, {"type": "tf", "question": "按讲稿的说法，退休就是“亢龙”到头，人生周期就此结束了。", "options": ["对", "错"], "answer": 1, "explain": "讲稿明说：退休不是亢龙到头，是上一条龙飞完了，新一条龙回到水底——潜龙勿用，重新蓄力，重新起一卦。"}, {"type": "tf", "question": "小易驻扎在钉钉 OpenClaw，和小科是同事。", "options": ["对", "错"], "answer": 0, "explain": "小易入职档案写明：驻扎地钉钉 OpenClaw，跟第二讲入编的小科“坐对桌”——自测题参考答案为对。"}, {"type": "single", "question": "“潜龙勿用”的下一爻是？", "options": ["见龙在田", "或跃在渊", "终日乾乾", "飞龙在天"], "answer": 0, "explain": "填空原题：潜龙勿用的下一爻是“见龙在田”——龙露头出现在田野上，开始被人看见，该拿出第一批作品了。"}, {"type": "single", "question": "两位员工分工：小科管“现实”，小易管什么？", "options": ["判断", "执行", "空间", "时间"], "answer": 3, "explain": "讲稿分工：小科管现实、看“空间”；小易管“时间”——读经典、讲周期；你只做判断。填空原题答案就是“时间”。"}, {"type": "single", "question": "讲稿说“物极必反”这四个字，对应乾卦的哪一爻？", "options": ["飞龙在天", "亢龙有悔", "或跃在渊", "终日乾乾"], "answer": 1, "explain": "第六爻亢龙有悔——飞过头的龙一定后悔。讲师点睛：物极必反，是《易经》送给中国人最贵重的四个字。"}, {"type": "single", "question": "按讲稿，判断力的两个来源是什么？", "options": ["大数据和算法", "名师和课本", "自己的阅历和老祖宗的书", "天赋和运气"], "answer": 2, "explain": "讲稿说判断力一半在你几十年的阅历里，一半在老祖宗的书里——经典是几千年攒下来的“判断力题库”。"}, {"type": "single", "question": "下面哪一项不属于小易上岗自带的四样本事？", "options": ["古籍陪读", "周期讲解", "每日国学晨报", "财经日报"], "answer": 3, "explain": "小易的四样本事是古籍陪读、周期讲解、每日国学晨报、技能包；财经日报是第一讲里小科送的，别记混了。"}, {"type": "order", "question": "请把“周期五台阶”按正确顺序排列。", "options": ["启动", "加速", "高潮", "衰退", "重生"], "answer": 0, "explain": "五台阶口诀：启动→加速→高潮→衰退→重生。重生不是完了，是新一轮的启动——圈，是转着走的。"}, {"type": "order", "question": "五行相生从“水”开始，请按正确顺序排列。", "options": ["水生木", "木生火", "火生土", "土生金", "金生水"], "answer": 0, "explain": "讲稿的生活画面依次是：浇水树长、柴禾点火、灰归土、矿从土里挖、金生水——最后水又去浇树，转回来一个圈。"}, {"type": "order", "question": "按乾卦第一爻到第五爻的顺序，排列讲师点睛的阶段名。", "options": ["底部蓄力期", "崭露头角期", "爬坡期", "关键抉择期", "高光期"], "answer": 0, "explain": "讲师逐爻点睛：潜龙是底部蓄力期，见龙是崭露头角期，终日乾乾是爬坡期，或跃在渊是关键抉择期，飞龙是高光期。"}], "boss": {"type": "single", "question": "本讲兑现了“老书里藏着一条曲线”的悬念。下面哪句话最准确地概括了本讲的灵魂？", "options": ["有了小易这位 AI 员工，判断可以放心交给它，老板只需要负责派活", "读经典的最高境界，是学会占卜，提前知道一件事的吉凶起落", "乾卦六爻、第三讲热度曲线、周期五台阶三图同框，一个形状——读经典练的是位置感，知道自己在第几爻", "经典只是文化熏陶，真正的判断力还得靠小科查来的大数据和报告"], "answer": 2, "explain": "讲稿点题：三千年前古人把万物盛衰的节奏刻进六根爻里，与热度曲线、五台阶“三张图，一个形状”；《易经》教的不是算命，是位置感；而判断这件事，永远归你这个老板。"}, "boundary": "读经典练的是判断力和周期感，不是占卜；一切演示不算命、不断吉凶、不预测涨跌；不承诺收益、不荐股，决策和风险永远在你自己。排盘只作纪念与乐趣，不做吉凶解读；起名等民俗话题只讲出处与寓意之美，不做命理断言；六爻与市场的类比仅指向已讲过的历史规律，不构成投资暗示；价格为常见量级举例不是报价，不构成平台代言。"}, {"lecture": 6, "title": "你的第一个 AI 助手", "tagline": "拿起手机，AI就是你的帮手", "key_motifs": ["遇事戴两副眼镜：一副看\"值不值得\"，一副看\"是不是时候\"", "AI是博学的\"书童\"，不是神仙，也不是真人", "两个\"不用\"：除了电脑端，不用装任何复杂的软件，不用懂一行代码", "配置像装宽带：麻烦一回，方便天天", "一通百通的一把钥匙：变的是事，不变的是那句家常话"], "knowledge_cards": [{"title": "两副眼镜", "body": "遇事别慌，先戴两副眼镜：第一副\"看现实\"——这件事对我有没有价值、值不值得做；第二副\"看时间\"——现在是不是做它的好时候。学扫码付款、报老年大学、孙子报兴趣班，大事小事都能用。你几十年的阅历就是最厚的一副眼镜，你缺的从来不是判断力，是一个能帮你把事办成的帮手。", "quote": "遇事戴两副眼镜——一副看\"值不值得\"，一副看\"是不是时候\"。想清楚了再动手，这就叫判断力。"}, {"title": "博学书童", "body": "别把AI想得太高深。它就是把全世界的书、报纸、网页都\"读\"了个遍，全记在肚子里；你问一句，它挑最合适的用大白话讲给你听。它不是神仙显灵，也不是有个真人躲在手机后头，就是个什么都懂一点、脾气特别好、还不要工钱的年轻人，住在你的微信里。把它当个博学的晚辈，心里就不怕它了。", "quote": "它就是一个书读得特别多、记性特别好、脾气还特别耐心的\"书童\"。"}, {"title": "两个不用", "body": "请第一个AI员工WorkBuddy进微信，记住两个\"不用\"：除了电脑端，不用装任何复杂的软件，不用懂一行代码。配置就像家里装宽带——师傅上门装一次，往后天天上网，用不着天天叫师傅。绑好之后以后天天在手机上用。四步走完：下载、装好、登录、授权自己微信。", "quote": "麻烦就麻烦这一回，方便是往后天天方便。"}, {"title": "一通百通", "body": "退休教师李阿姨60岁，就在微信里发了一句家常话：\"我孙子今年初二，数学80分，英语70分，想提高成绩，请帮我制定一个30天学习计划，要简单、好执行。\"计划来了，孩子没那么抵触了，她心里也有了谱。把\"孙子学习\"换成买菜做饭、看病吃药、写信记事、出门旅行，它都照样帮你——变的是那件事，不变的是那句你张口就来的家常话。", "quote": "你学会的不是一招，而是一通百通的一把钥匙。"}, {"title": "三级阶梯", "body": "AI能力三级阶梯：第一层，手机AI助手，适合所有人，一部手机、一个微信就是起点；第二层，电脑AI助手，比如用OpenClaw这类工具处理成批文件、写更长的东西；第三层，AI生产力系统，比如ClaudeCode、KimiCode，搭一套真正的个人AI团队。不是所有人第一天都要开飞机，今晚会坐车就很了不起了。", "quote": "先学会坐车，坐稳当了，再看要不要学开车、要不要学开飞机。"}, {"title": "三个不要", "body": "收官的\"丑话\"比所有图加起来都值钱：一不要以为会用工具就万事大吉——AI不知道你家里的事，拿主意的永远是你自己；二不要相信\"三天速成、一学就发财\"——谁说稳赚不赔，你扭头就走，慢才是真的快；三不要把AI当成神，也不要当成敌人——它出活快，可验收、把关、拿主意的永远是你。", "quote": "工具是帮手，拿主意的永远还是你自己。"}, {"title": "一人公司", "body": "\"一人公司\"不是让你马上搭一个又复杂又高级的AI团队。以前写文章、查资料、整理照片、做计划，一摊子活样样自己扛；现在手机里的AI助手把这些活儿分着帮你干，你一个人就顶得上过去一个小组。过去请秘书是大老板的排场，现在一个手机人人请得起——这是时代给咱们普通人发的一份实实在在的红利。", "quote": "它不高深，它就在你手机里，已经开张了。"}], "quiz": [{"type": "single", "question": "本讲说的\"两副眼镜\"，分别看的是什么？", "options": ["看\"快不快\"和看\"难不难\"", "看\"涨不涨\"和看\"赚不赚\"", "看\"值不值得\"和看\"是不是时候\"", "看\"新不新\"和看\"贵不贵\""], "answer": 2, "explain": "讲稿说第一副\"看现实\"是这事值不值得做，第二副\"看时间\"是现在是不是好时候；并明确它不算钱、不预测涨跌、更不是算命。"}, {"type": "tf", "question": "用AI必须先会用电脑、会写代码。", "options": ["对", "错"], "answer": 1, "explain": "讲稿自测参考答案为✗。本讲强调两个\"不用\"：除了电脑端，其他不用装任何复杂的软件、不用懂一行代码，打开天天用的微信就能开始。"}, {"type": "single", "question": "讲师把AI助手比作什么，让大家心里不怕它？", "options": ["躲在手机后头的真人客服", "书读得多、记性好、脾气耐心的\"书童\"", "无所不知、不会出错的神仙", "来抢饭碗的对手"], "answer": 1, "explain": "讲稿说它把全世界的书报网页\"读\"了个遍，是个博学的\"书童\"、博学的晚辈；它不是神仙显灵，也不是真人躲在手机后头。"}, {"type": "order", "question": "请把WorkBuddy\"一次性配置\"的四步按正确顺序排好：", "options": ["下载", "装好", "登录", "授权自己微信"], "answer": 0, "explain": "讲稿图3\"WorkBuddy一次性配置4步\"：第一步下载，第二步装好，第三步登录，第四步授权自己微信；绑一次，以后全在手机上用。"}, {"type": "tf", "question": "两副眼镜是给人生拿主意用的，不算钱、不预测涨跌，更不是算命。", "options": ["对", "错"], "answer": 0, "explain": "这是讲稿原话：这两副眼镜是给咱们的人生拿主意用的，不是算钱、不预测涨跌，更不是算命，它就帮你把一件事看得更清楚一点。"}, {"type": "single", "question": "AI能力三级阶梯的第一层是什么？", "options": ["电脑AI助手", "AI生产力系统", "编程AI团队", "手机AI助手"], "answer": 3, "explain": "讲稿说第一层是手机AI助手，适合所有人，一部手机、一个微信就是起点；电脑AI助手是第二层，AI生产力系统是第三层。"}, {"type": "single", "question": "按本讲的说法，\"一人公司\"的开头指的是什么？", "options": ["手机里的AI助手把活儿分着干，你一个人顶得上过去一个小组", "马上去注册一家公司创业", "立刻搭一个又复杂又高级的AI团队", "花钱雇一个年轻人当秘书"], "answer": 0, "explain": "讲稿明说\"一人公司\"不是让你马上搭复杂高级的AI团队，而是手机里的助手分担了写文章、查资料这些活，一个人顶过去一个小组。"}, {"type": "order", "question": "请把\"AI能力三级阶梯\"从低到高排好：", "options": ["手机AI助手", "电脑AI助手", "AI生产力系统"], "answer": 0, "explain": "讲稿的阶梯从低到高依次是：第一层手机AI助手，第二层电脑AI助手（如OpenClaw），第三层AI生产力系统（如ClaudeCode、KimiCode）。"}, {"type": "tf", "question": "AI给的建议都得百分之百照做。", "options": ["对", "错"], "answer": 1, "explain": "讲稿自测参考答案为✗。AI的话只是参考：孩子学习多听学校老师，身体的事要问医生；验收、把关、拿主意的永远是你自己。"}, {"type": "single", "question": "讲师把WorkBuddy的配置过程比作什么？", "options": ["学游泳，得天天下水练", "开飞机，得先考执照", "请保姆，月月要付工钱", "装宽带，师傅装一次，往后天天用"], "answer": 3, "explain": "讲稿说配置就像家里装宽带：师傅上门装一次，往后天天上网，不用天天叫师傅——麻烦就麻烦这一回，方便是往后天天方便。"}, {"type": "tf", "question": "手机上一个微信就能开始用AI。", "options": ["对", "错"], "answer": 0, "explain": "讲稿自测参考答案为√。不用装复杂软件、不用懂代码，打开天天用的微信找到WorkBuddy，发一句大白话就能让它帮你办事。"}, {"type": "single", "question": "下面哪一条是本讲\"三个不要\"里的？", "options": ["不要跟AI说家常大白话", "不要把学到的本事教给身边人", "不要相信\"三天速成、一学就发财\"", "不要在微信里用AI"], "answer": 2, "explain": "\"三个不要\"第二条：不要相信任何\"三天速成、一学就发财\"，谁说稳赚不赔就扭头走。讲稿反而鼓励说大白话、把本事教给身边人。"}, {"type": "order", "question": "按讲稿的教法，遇事拿主意的正确顺序是：", "options": ["先戴第一副\"看现实\"：这事值不值得做", "再戴第二副\"看时间\"：现在是不是好时候", "想清楚了再动手"], "answer": 0, "explain": "讲稿举例时都是\"先戴上第一副看现实，再戴上第二副看时间\"，金句收尾是\"想清楚了再动手，这就叫判断力\"。"}, {"type": "tf", "question": "学完这六讲，跟着做就能马上发财。", "options": ["对", "错"], "answer": 1, "explain": "讲稿自测参考答案为✗。这门课给的是入门和信心，真本事是往后一天几分钟慢慢用出来的——\"慢才是真的快\"，本课不承诺任何收益。"}], "boss": {"type": "single", "question": "六讲收官，讲师说\"门里门外是两个世界\"。按本讲的讲法，一个人从\"听说过AI\"真正跨进门里，最关键的一步是什么？", "options": ["先把AI的原理和代码都学明白，再动手才稳妥", "亲手在微信里给AI发一句家常大白话，让它帮自己办成一件事", "直接上第三层，搭一套ClaudeCode那样的AI生产力系统", "等儿女有空回家，让他们替自己把AI都设置和操作好"], "answer": 1, "explain": "讲稿说\"听懂是知道了，会用才是真正属于你了\"，就像游泳必须自己下水；那句家常话是一通百通的钥匙。不必先懂代码，也不必第一天就开飞机——先学会坐车；总求人则欠人情，AI帮手让你不用看谁的脸色，自己动手这一步才算跨进门。"}, "boundary": "本讲明确：所有演示只为把生活办得更顺，不承诺任何收益，不算命、不荐股；两副眼镜是给人生拿主意用的，不算钱、不预测涨跌；AI的建议只是参考，孩子学习听学校老师、身体健康问医生，大事和家人商量；警惕\"三天速成、一学就发财\"\"三天暴富、稳赚不赔\"的说法，扭头就走；AI是帮手不是替你做决定的人，主意和主意带来的风险，永远在你自己。"}]};
+</script>
+<script>
+/* ================= 核心配置 ================= */
+var STAGE_META = [
+  {
+    yao: '初九 · 潜龙勿用', yaoShort: '潜龙勿用', phase: '底部蓄力期',
+    plain: '龙还潜在水底——本事再大，先别张扬，先练内功',
+    intro: '大部分人还没动，你先下水修行。第一重爻境，先把这场 AI 产业革命，看个明白。',
+    acc: '#4dd0e1', accd: 'rgba(77,208,225,.5)',
+    skyTop: [8, 22, 44], skyBot: [10, 48, 66], ground: [18, 60, 82],
+    deco: 'water'
+  },
+  {
+    yao: '九二 · 见龙在田', yaoShort: '见龙在田', phase: '崭露头角期',
+    plain: '龙露头了，出现在田野上——第一批作品，该拿出来了',
+    intro: '从“看见”到“用上”，隔着的不是技术，是一次动手。这一境，组建你自己的 AI 团队。',
+    acc: '#9ccc65', accd: 'rgba(156,204,101,.5)',
+    skyTop: [16, 42, 48], skyBot: [46, 74, 44], ground: [58, 88, 52],
+    deco: 'field'
+  },
+  {
+    yao: '九三 · 终日乾乾', yaoShort: '终日乾乾', phase: '奋进爬坡期',
+    plain: '白天勤勤恳恳，晚上自省复盘——越顺，越不能飘',
+    intro: '爬坡最忌一个字：飘。这一境，把 AI 时代的财富地图，一层一层看懂。',
+    acc: '#ffb74d', accd: 'rgba(255,183,77,.5)',
+    skyTop: [54, 38, 40], skyBot: [140, 84, 48], ground: [120, 76, 46],
+    deco: 'trail'
+  },
+  {
+    yao: '九四 · 或跃在渊', yaoShort: '或跃在渊', phase: '关键抉择期',
+    plain: '龙到深潭边上——跳不跳，看时机；进退，都不算错',
+    intro: '纵身一跃，跳进一片新天地：当 AI 遇见易经，戴上看时间的第二副眼镜。',
+    acc: '#b39ddb', accd: 'rgba(179,157,219,.5)',
+    skyTop: [30, 22, 58], skyBot: [64, 44, 96], ground: [56, 42, 88],
+    deco: 'abyss'
+  },
+  {
+    yao: '九五 · 飞龙在天', yaoShort: '飞龙在天', phase: '高光时刻',
+    plain: '龙飞上天了——最高光的时刻，越是顶上，越要清醒',
+    intro: '云端之境，先生上岗。小易陪你读懂乾卦六爻——你脚下这条路，正是那条龙。',
+    acc: '#ffd54f', accd: 'rgba(255,213,79,.5)',
+    skyTop: [42, 74, 132], skyBot: [150, 128, 84], ground: [96, 118, 150],
+    deco: 'cloud'
+  },
+  {
+    yao: '上九 · 亢龙有悔', yaoShort: '亢龙有悔', phase: '物极必反 · 收官',
+    plain: '飞过头的龙，一定后悔——顶峰之上，守住边界',
+    intro: '最后一境：把 AI 真正拿在手里，也把“物极必反”刻在心里。通关，就在今晚。',
+    acc: '#ff8a65', accd: 'rgba(255,138,101,.5)',
+    skyTop: [6, 8, 24], skyBot: [34, 24, 56], ground: [40, 34, 66],
+    deco: 'summit'
+  }
+];
+
+var QUIZ_PICK = 8;          // 每关抽题数（不含大考）
+var PTS_FIRST = 10;         // 首次答对
+var PTS_BOSS = 30;          // 大考首次答对
+var PTS_BOSS_RETRY = 10;    // 大考重试后答对
+var PTS_STAGE_BONUS = 20;   // 通关奖励
+var PTS_PERFECT = 30;       // 全对奖励
+
+/* ================= 工具 ================= */
+function $(id) { return document.getElementById(id); }
+function el(tag, cls, html) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html !== undefined) e.innerHTML = html;
+  return e;
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lerpC(c1, c2, t) {
+  return 'rgb(' + Math.round(lerp(c1[0], c2[0], t)) + ',' + Math.round(lerp(c1[1], c2[1], t)) + ',' + Math.round(lerp(c1[2], c2[2], t)) + ')';
+}
+function rgba(c, a) { return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+
+var toastTimer = null;
+function toast(msg) {
+  var t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+}
+
+/* ================= 存档 ================= */
+var SAVE_KEY = 'flzl_save_v1';
+var S = {
+  name: '',
+  score: 0,
+  done: [false, false, false, false, false, false],
+  stars: [0, 0, 0, 0, 0, 0],
+  briefed: [false, false, false, false, false, false],
+  sound: true,
+  certSeen: false
+};
+function saveGame() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { }
+}
+function loadGame() {
+  try {
+    var raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    var d = JSON.parse(raw);
+    function arr6(v, fill, chk) {
+      if (!Array.isArray(v)) return null;
+      var out = [];
+      for (var i = 0; i < 6; i++) out.push(chk(v[i]) ? v[i] : fill);
+      return out;
+    }
+    var done = arr6(d.done, false, function (x) { return typeof x === 'boolean'; });
+    var stars = arr6(d.stars, 0, function (x) { return typeof x === 'number' && x >= 0 && x <= 3; });
+    var briefed = arr6(d.briefed, false, function (x) { return typeof x === 'boolean'; });
+    if (!done || !stars || !briefed) return; // 存档结构损坏，弃用
+    S.done = done; S.stars = stars; S.briefed = briefed;
+    if (typeof d.score === 'number' && isFinite(d.score) && d.score >= 0) S.score = Math.floor(d.score);
+    if (typeof d.name === 'string') S.name = d.name.slice(0, 8);
+    if (typeof d.sound === 'boolean') S.sound = d.sound;
+    if (typeof d.certSeen === 'boolean') S.certSeen = d.certSeen;
+  } catch (e) { }
+}
+function currentStage() {
+  for (var i = 0; i < 6; i++) if (!S.done[i]) return i;
+  return 6; // 全部通关
+}
+
+/* ================= 音效（WebAudio 合成，无外部文件） ================= */
+var AU = { ctx: null };
+function auInit() {
+  if (AU.ctx) return;
+  try {
+    var C = window.AudioContext || window.webkitAudioContext;
+    if (C) AU.ctx = new C();
+  } catch (e) { }
+}
+function auResume() {
+  if (AU.ctx && AU.ctx.state === 'suspended') { try { AU.ctx.resume(); } catch (e) { } }
+}
+function tone(freq, dur, type, vol, delay, slide) {
+  if (!S.sound || !AU.ctx) return;
+  try {
+    var t0 = AU.ctx.currentTime + (delay || 0);
+    var o = AU.ctx.createOscillator();
+    var g = AU.ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t0);
+    if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol || 0.12, t0 + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(AU.ctx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.05);
+  } catch (e) { }
+}
+var SFX = {
+  tap: function () { tone(720, 0.07, 'sine', 0.06); },
+  flip: function () { tone(520, 0.09, 'triangle', 0.07); tone(780, 0.09, 'triangle', 0.05, 0.05); },
+  good: function () { tone(660, 0.12, 'sine', 0.1); tone(880, 0.14, 'sine', 0.1, 0.09); tone(1174, 0.2, 'sine', 0.09, 0.18); },
+  bad: function () { tone(300, 0.2, 'triangle', 0.09); tone(210, 0.28, 'triangle', 0.08, 0.1); },
+  combo: function (n) { var f = 880 + Math.min(n, 6) * 110; tone(f, 0.1, 'sine', 0.09); tone(f * 1.33, 0.12, 'sine', 0.08, 0.07); },
+  yao: function () {
+    tone(523, 0.16, 'sine', 0.11); tone(659, 0.16, 'sine', 0.1, 0.12);
+    tone(784, 0.18, 'sine', 0.1, 0.24); tone(1046, 0.5, 'sine', 0.12, 0.36);
+  },
+  boss: function () { tone(196, 0.3, 'sawtooth', 0.05); tone(147, 0.4, 'sawtooth', 0.05, 0.18); },
+  win: function () {
+    var seq = [523, 587, 659, 784, 880, 1046, 1318];
+    for (var i = 0; i < seq.length; i++) tone(seq[i], 0.22, 'sine', 0.1, i * 0.13);
+    tone(1568, 0.7, 'sine', 0.1, seq.length * 0.13);
+  }
+};
+
+/* ================= 爻境地图（Canvas 渲染） ================= */
+var MAP = (function () {
+  var cv = $('mapCanvas'), ctx = cv.getContext('2d');
+  // 旧内核 ellipse 兜底
+  if (!ctx.ellipse) {
+    ctx.ellipse = function (x, y, rx, ry, rot, a0, a1, ccw) {
+      this.save();
+      this.translate(x, y);
+      this.rotate(rot || 0);
+      this.scale(rx, ry);
+      this.arc(0, 0, 1, a0, a1, ccw);
+      this.restore();
+    };
+  }
+  var W = 0, H = 0, DPR = 1;
+  var STEP = 520, BOT_PAD = 330, TOP_PAD = 480;
+  var worldH = BOT_PAD + STEP * 5 + TOP_PAD;
+  var camY = 0, camTarget = 0, camVel = 0;
+  var XOFF = [-0.26, 0.27, -0.30, 0.26, -0.25, 0.01];
+  var time = 0, started = false;
+  var stars = [], clouds = [], parts = [], fireflies = [];
+  var dashOff = 0;
+  var api = { onIslandTap: null, interactive: false };
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    camTarget = clamp(camTarget, 0, worldH - H);
+    camY = clamp(camY, 0, worldH - H);
+  }
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', function () { setTimeout(resize, 250); });
+
+  function islandWX(i) { return W / 2 + XOFF[i] * Math.min(W, 500); }
+  function islandWY(i) { return worldH - BOT_PAD - i * STEP; }
+  function islandR() { return clamp(Math.min(W, 500) * 0.19, 62, 92); }
+
+  /* ---------- 初始化背景元素 ---------- */
+  function initScenery() {
+    stars = []; clouds = []; fireflies = [];
+    var i;
+    for (i = 0; i < 130; i++) {
+      stars.push({
+        x: Math.random(), y: Math.random() * worldH * 0.62,
+        s: Math.random() * 1.5 + 0.5, p: Math.random() * 6.28, sp: 0.5 + Math.random() * 2
+      });
+    }
+    for (i = 0; i < 26; i++) {
+      clouds.push({
+        x: Math.random() * 1.4 - 0.2, y: Math.random() * worldH,
+        s: 0.5 + Math.random() * 1.1, par: 0.55 + Math.random() * 0.4,
+        v: (Math.random() * 0.5 + 0.15) * (Math.random() < 0.5 ? 1 : -1),
+        a: 0.05 + Math.random() * 0.09
+      });
+    }
+    for (i = 0; i < 24; i++) {
+      fireflies.push({
+        st: Math.floor(Math.random() * 6), ang: Math.random() * 6.28,
+        rr: 40 + Math.random() * 90, vy: 6 + Math.random() * 14,
+        p: Math.random() * 6.28, s: 1 + Math.random() * 1.6
+      });
+    }
+  }
+
+  /* ---------- 天空 ---------- */
+  function skyColors() {
+    var center = camY + H / 2;
+    var f = clamp((worldH - BOT_PAD - center) / STEP, 0, 5);
+    var i0 = Math.floor(f), i1 = Math.min(i0 + 1, 5), t = f - i0;
+    return {
+      top: lerpCArr(STAGE_META[i0].skyTop, STAGE_META[i1].skyTop, t),
+      bot: lerpCArr(STAGE_META[i0].skyBot, STAGE_META[i1].skyBot, t),
+      f: f
+    };
+  }
+  function lerpCArr(a, b, t) {
+    return [Math.round(lerp(a[0], b[0], t)), Math.round(lerp(a[1], b[1], t)), Math.round(lerp(a[2], b[2], t))];
+  }
+
+  function drawSky(sc) {
+    var g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, rgba(sc.top, 1));
+    g.addColorStop(1, rgba(sc.bot, 1));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawStars(sc) {
+    var vis = clamp((sc.f - 2.2) / 2.2, 0, 1) * 0.9 + 0.12;
+    ctx.save();
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      var sy = s.y - camY * 0.85;
+      if (sy < -10 || sy > H + 10) continue;
+      var tw = 0.4 + 0.6 * Math.abs(Math.sin(time * s.sp + s.p));
+      ctx.globalAlpha = vis * tw;
+      ctx.fillStyle = '#fff8e6';
+      ctx.beginPath();
+      ctx.arc(s.x * W, sy, s.s, 0, 6.28);
+      ctx.fill();
+    }
+    // 顶端明月
+    var my = TOP_PAD * 0.42 - camY * 0.85;
+    if (my > -80 && my < H + 80) {
+      ctx.globalAlpha = clamp((sc.f - 3.4) / 1.6, 0, 1);
+      var mx = W * 0.78;
+      var mg = ctx.createRadialGradient(mx, my, 4, mx, my, 90);
+      mg.addColorStop(0, 'rgba(255,244,214,.9)');
+      mg.addColorStop(0.25, 'rgba(255,240,200,.28)');
+      mg.addColorStop(1, 'rgba(255,240,200,0)');
+      ctx.fillStyle = mg;
+      ctx.beginPath(); ctx.arc(mx, my, 90, 0, 6.28); ctx.fill();
+      ctx.fillStyle = 'rgba(255,247,224,.95)';
+      ctx.beginPath(); ctx.arc(mx, my, 26, 0, 6.28); ctx.fill();
+      ctx.fillStyle = rgba(sc.top, 0.35);
+      ctx.beginPath(); ctx.arc(mx - 9, my - 5, 22, 0, 6.28); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawClouds(front) {
+    ctx.save();
+    for (var i = 0; i < clouds.length; i++) {
+      var c = clouds[i];
+      var isFront = i % 3 === 0;
+      if (isFront !== front) continue;
+      var cy = c.y - camY * c.par;
+      if (cy < -60 || cy > H + 60) continue;
+      var cx = ((c.x + time * c.v * 0.008) % 1.4 + 1.4) % 1.4 - 0.2;
+      cx *= W;
+      var s = c.s * (front ? 1.25 : 0.85);
+      ctx.globalAlpha = c.a * (front ? 1.5 : 1);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 26 * s, 0, 6.28);
+      ctx.arc(cx + 30 * s, cy + 6 * s, 20 * s, 0, 6.28);
+      ctx.arc(cx - 32 * s, cy + 7 * s, 18 * s, 0, 6.28);
+      ctx.arc(cx + 8 * s, cy - 12 * s, 17 * s, 0, 6.28);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /* ---------- 岛间路径 ---------- */
+  function drawPath(cur) {
+    for (var i = 0; i < 5; i++) {
+      var x1 = islandWX(i), y1 = islandWY(i) - camY;
+      var x2 = islandWX(i + 1), y2 = islandWY(i + 1) - camY;
+      if (Math.max(y1, y2) < -60 || Math.min(y1, y2) > H + 60) continue;
+      var bob1 = Math.sin(time * 0.8 + i * 1.3) * 6;
+      var bob2 = Math.sin(time * 0.8 + (i + 1) * 1.3) * 6;
+      y1 += bob1 - 24; y2 += bob2 + islandR() * 0.5 + 26;
+      var mx = (x1 + x2) / 2 + (x1 < x2 ? -1 : 1) * 40;
+      var my = (y1 + y2) / 2;
+      var lit = i < cur;
+      ctx.save();
+      ctx.lineCap = 'round';
+      if (lit) {
+        ctx.strokeStyle = 'rgba(255,217,138,.85)';
+        ctx.lineWidth = 3.4;
+        ctx.setLineDash([2, 15]);
+        ctx.lineDashOffset = dashOff;
+        ctx.shadowColor = 'rgba(255,217,138,.8)';
+        ctx.shadowBlur = 7;
+      } else {
+        ctx.strokeStyle = 'rgba(240,230,205,.24)';
+        ctx.lineWidth = 2.6;
+        ctx.setLineDash([1, 14]);
+      }
+      ctx.beginPath();
+      ctx.moveTo(x1, y1 - islandR() * 0.2);
+      ctx.quadraticCurveTo(mx, my, x2, y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* ---------- 岛屿装饰 ---------- */
+  function drawDeco(m, x, y, r, i, locked) {
+    var a = locked ? 0.35 : 1;
+    ctx.save();
+    ctx.globalAlpha *= a;
+    var t = time;
+    if (m.deco === 'water') {
+      ctx.strokeStyle = 'rgba(120,220,235,.5)';
+      ctx.lineWidth = 1.6;
+      for (var k = 0; k < 3; k++) {
+        var rr = (r * 0.32) + ((t * 14 + k * 22) % 66);
+        ctx.globalAlpha = a * clamp(1 - rr / 70, 0, 0.55);
+        ctx.beginPath();
+        ctx.ellipse(x, y - 4, rr, rr * 0.34, 0, 0, 6.28);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = a * 0.9;
+      ctx.strokeStyle = 'rgba(90,190,140,.8)';
+      ctx.lineWidth = 2.4;
+      for (var q = -1; q <= 1; q++) {
+        ctx.beginPath();
+        ctx.moveTo(x + r * 0.55 + q * 8, y - 2);
+        ctx.quadraticCurveTo(x + r * 0.55 + q * 8 + Math.sin(t * 1.4 + q) * 4, y - 22, x + r * 0.55 + q * 8 + Math.sin(t * 1.4 + q) * 7, y - 34 - q * 4);
+        ctx.stroke();
+      }
+    } else if (m.deco === 'field') {
+      for (var f = 0; f < 3; f++) {
+        ctx.fillStyle = f % 2 ? 'rgba(120,170,80,.75)' : 'rgba(96,150,66,.75)';
+        ctx.beginPath();
+        ctx.ellipse(x, y - 6 - f * 9, r * (0.72 - f * 0.18), r * (0.2 - f * 0.045), 0, 0, 6.28);
+        ctx.fill();
+      }
+      ctx.strokeStyle = 'rgba(170,220,110,.95)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 34);
+      ctx.quadraticCurveTo(x + Math.sin(t * 1.2) * 3, y - 47, x, y - 56);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(170,220,110,.95)';
+      ctx.beginPath();
+      ctx.ellipse(x - 5, y - 55, 6, 3.4, -0.6, 0, 6.28);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(x + 5, y - 58, 6, 3.4, 0.6, 0, 6.28);
+      ctx.fill();
+    } else if (m.deco === 'trail') {
+      ctx.fillStyle = 'rgba(150,102,60,.85)';
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.5, y - 4);
+      ctx.quadraticCurveTo(x - r * 0.1, y - 52, x + r * 0.18, y - 46);
+      ctx.quadraticCurveTo(x + r * 0.4, y - 40, x + r * 0.42, y - 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,224,160,.75)';
+      ctx.lineWidth = 2.2;
+      ctx.setLineDash([4, 7]);
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.34, y - 8);
+      ctx.quadraticCurveTo(x + r * 0.1, y - 18, x - r * 0.06, y - 30);
+      ctx.quadraticCurveTo(x + r * 0.14, y - 40, x + r * 0.05, y - 46);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      var lg = 0.65 + 0.35 * Math.sin(t * 3.2);
+      ctx.fillStyle = 'rgba(255,190,90,' + (0.75 + 0.2 * lg) + ')';
+      ctx.beginPath(); ctx.arc(x + r * 0.05, y - 55, 4.6, 0, 6.28); ctx.fill();
+      var lgr = ctx.createRadialGradient(x + r * 0.05, y - 55, 1, x + r * 0.05, y - 55, 19);
+      lgr.addColorStop(0, 'rgba(255,190,90,' + 0.4 * lg + ')');
+      lgr.addColorStop(1, 'rgba(255,190,90,0)');
+      ctx.fillStyle = lgr;
+      ctx.beginPath(); ctx.arc(x + r * 0.05, y - 55, 19, 0, 6.28); ctx.fill();
+      ctx.strokeStyle = 'rgba(90,60,40,.9)'; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.moveTo(x + r * 0.05, y - 50); ctx.lineTo(x + r * 0.05, y - 32); ctx.stroke();
+    } else if (m.deco === 'abyss') {
+      ctx.fillStyle = 'rgba(16,10,34,.85)';
+      ctx.beginPath();
+      ctx.ellipse(x - r * 0.2, y - 5, r * 0.42, r * 0.13, 0.2, 0, 6.28);
+      ctx.fill();
+      var ta = t * 0.4, R = 21, cx2 = x + r * 0.28, cy2 = y - 46 + Math.sin(t * 0.9) * 5;
+      ctx.save();
+      ctx.translate(cx2, cy2); ctx.rotate(ta);
+      ctx.fillStyle = 'rgba(240,236,220,.92)';
+      ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2); ctx.arc(0, R / 2, R / 2, Math.PI / 2, -Math.PI / 2, true); ctx.arc(0, -R / 2, R / 2, Math.PI / 2, -Math.PI / 2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(24,18,44,.95)';
+      ctx.beginPath(); ctx.arc(0, 0, R, Math.PI / 2, -Math.PI / 2); ctx.arc(0, -R / 2, R / 2, -Math.PI / 2, Math.PI / 2, true); ctx.arc(0, R / 2, R / 2, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(24,18,44,.95)';
+      ctx.beginPath(); ctx.arc(0, -R / 2, R / 6, 0, 6.28); ctx.fill();
+      ctx.fillStyle = 'rgba(240,236,220,.92)';
+      ctx.beginPath(); ctx.arc(0, R / 2, R / 6, 0, 6.28); ctx.fill();
+      ctx.strokeStyle = 'rgba(179,157,219,.65)'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(0, 0, R + 3.2, 0, 6.28); ctx.stroke();
+      ctx.restore();
+    } else if (m.deco === 'cloud') {
+      var px = x - r * 0.06, py = y - 6;
+      ctx.fillStyle = 'rgba(120,86,66,.92)';
+      ctx.fillRect(px - 17, py - 30, 4.5, 30);
+      ctx.fillRect(px + 12.5, py - 30, 4.5, 30);
+      ctx.fillStyle = 'rgba(150,44,44,.95)';
+      ctx.beginPath();
+      ctx.moveTo(px - 34, py - 30);
+      ctx.quadraticCurveTo(px - 30, py - 36, px, py - 46);
+      ctx.quadraticCurveTo(px + 30, py - 36, px + 34, py - 30);
+      ctx.quadraticCurveTo(px + 20, py - 34, px, py - 35);
+      ctx.quadraticCurveTo(px - 20, py - 34, px - 34, py - 30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,213,79,.95)';
+      ctx.beginPath(); ctx.arc(px, py - 47, 3.4, 0, 6.28); ctx.fill();
+      ctx.globalAlpha = a * 0.7;
+      ctx.fillStyle = '#fff';
+      var cbx = x - r * 0.5, cby = y - 20 + Math.sin(t * 1.1) * 4;
+      ctx.beginPath();
+      ctx.arc(cbx, cby, 9, 0, 6.28); ctx.arc(cbx + 10, cby + 2, 7, 0, 6.28); ctx.arc(cbx - 10, cby + 2, 6, 0, 6.28);
+      ctx.fill();
+    } else if (m.deco === 'summit') {
+      ctx.fillStyle = 'rgba(70,62,100,.95)';
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.5, y - 2);
+      ctx.lineTo(x - r * 0.05, y - 58);
+      ctx.lineTo(x + r * 0.4, y - 2);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(235,235,245,.9)';
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.17, y - 44);
+      ctx.lineTo(x - r * 0.05, y - 58);
+      ctx.lineTo(x + r * 0.08, y - 44);
+      ctx.quadraticCurveTo(x - r * 0.05, y - 49, x - r * 0.17, y - 44);
+      ctx.closePath(); ctx.fill();
+      var fx = x - r * 0.05, fy = y - 58;
+      ctx.strokeStyle = 'rgba(120,90,70,.95)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - 24); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,120,80,.95)';
+      ctx.beginPath();
+      ctx.moveTo(fx, fy - 24);
+      ctx.quadraticCurveTo(fx + 12 + Math.sin(t * 2.6) * 3, fy - 21, fx + 20 + Math.sin(t * 2.6) * 4, fy - 17);
+      ctx.quadraticCurveTo(fx + 11, fy - 16, fx, fy - 14);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /* ---------- 岛屿 ---------- */
+  function drawIsland(i, cur) {
+    var m = STAGE_META[i];
+    var r = islandR();
+    var x = islandWX(i);
+    var y = islandWY(i) - camY + Math.sin(time * 0.8 + i * 1.3) * 6;
+    if (y < -r * 3 || y > H + r * 3) return;
+    var locked = i > cur;
+    var done = S.done[i];
+    ctx.save();
+    if (locked) ctx.globalAlpha = 0.62;
+
+    // 当前关光环
+    if (i === cur && api.interactive) {
+      var pr = r + 16 + Math.sin(time * 2.4) * 6;
+      var rg = ctx.createRadialGradient(x, y, r * 0.5, x, y, pr + 26);
+      rg.addColorStop(0, 'rgba(255,217,138,0)');
+      rg.addColorStop(0.7, m.accd.replace('.5', '.28'));
+      rg.addColorStop(1, 'rgba(255,217,138,0)');
+      ctx.fillStyle = rg;
+      ctx.beginPath(); ctx.arc(x, y, pr + 26, 0, 6.28); ctx.fill();
+      ctx.strokeStyle = m.acc;
+      ctx.globalAlpha = 0.5 + 0.3 * Math.sin(time * 2.4);
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(x, y + 4, pr, pr * 0.42, 0, 0, 6.28); ctx.stroke();
+      ctx.globalAlpha = locked ? 0.62 : 1;
+    }
+
+    // 底部岩体（宽岩层 + 两个悬垂岩尖）
+    var g2 = ctx.createLinearGradient(x, y, x, y + r * 1.5);
+    g2.addColorStop(0, rgba(m.ground, 0.98));
+    g2.addColorStop(0.45, rgba([Math.max(m.ground[0] - 22, 0), Math.max(m.ground[1] - 22, 0), Math.max(m.ground[2] - 18, 0)], 0.98));
+    g2.addColorStop(1, rgba([Math.max(m.ground[0] - 44, 0), Math.max(m.ground[1] - 44, 0), Math.max(m.ground[2] - 38, 0)], 0.98));
+    ctx.fillStyle = g2;
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.98, y + 3);
+    ctx.quadraticCurveTo(x - r * 0.88, y + r * 0.42, x - r * 0.6, y + r * 0.58);
+    ctx.lineTo(x - r * 0.46, y + r * 0.94);
+    ctx.lineTo(x - r * 0.28, y + r * 0.66);
+    ctx.lineTo(x - r * 0.05, y + r * 1.38);
+    ctx.lineTo(x + r * 0.18, y + r * 0.74);
+    ctx.lineTo(x + r * 0.38, y + r * 0.95);
+    ctx.quadraticCurveTo(x + r * 0.62, y + r * 0.6, x + r * 0.78, y + r * 0.42);
+    ctx.quadraticCurveTo(x + r * 0.94, y + r * 0.2, x + r * 0.98, y + 3);
+    ctx.closePath();
+    ctx.fill();
+    // 岩体棱线与亮边
+    ctx.strokeStyle = 'rgba(0,0,0,.18)';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.34, y + r * 0.3); ctx.lineTo(x - r * 0.05, y + r * 1.16);
+    ctx.moveTo(x + r * 0.46, y + r * 0.24); ctx.lineTo(x + r * 0.3, y + r * 0.78);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,244,214,.14)';
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.9, y + r * 0.16); ctx.quadraticCurveTo(x - r * 0.7, y + r * 0.5, x - r * 0.48, y + r * 0.62);
+    ctx.stroke();
+
+    // 顶面
+    var g1 = ctx.createLinearGradient(x - r, y - r * 0.3, x + r, y + r * 0.3);
+    g1.addColorStop(0, rgba([Math.min(m.ground[0] + 64, 255), Math.min(m.ground[1] + 64, 255), Math.min(m.ground[2] + 56, 255)], 1));
+    g1.addColorStop(0.6, rgba([Math.min(m.ground[0] + 26, 255), Math.min(m.ground[1] + 26, 255), Math.min(m.ground[2] + 22, 255)], 1));
+    g1.addColorStop(1, rgba(m.ground, 1));
+    ctx.fillStyle = g1;
+    ctx.beginPath();
+    ctx.ellipse(x, y, r, r * 0.38, 0, 0, 6.28);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,244,214,.32)';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.ellipse(x, y - 1.5, r * 0.99, r * 0.375, 0, Math.PI, 6.28);
+    ctx.stroke();
+
+    // 装饰
+    drawDeco(m, x, y, r, i, locked);
+
+    // 状态标记
+    if (locked) {
+      ctx.globalAlpha = 0.95;
+      ctx.font = '22px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🔒', x, y - 26);
+    }
+    if (done) {
+      var py2 = y - r * 0.72 - 16 + Math.sin(time * 1.6 + i) * 5;
+      var pg = ctx.createRadialGradient(x - 3, py2 - 3, 1, x, py2, 12);
+      pg.addColorStop(0, '#ffffff');
+      pg.addColorStop(0.45, '#ffe3a0');
+      pg.addColorStop(1, '#d4a856');
+      ctx.shadowColor = 'rgba(255,217,138,.9)';
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = pg;
+      ctx.beginPath(); ctx.arc(x, py2, 10.5, 0, 6.28); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    if (i === cur && api.interactive && !done) {
+      var by = y - r * 0.66 - 34 + Math.sin(time * 2) * 5;
+      ctx.font = '700 15px sans-serif';
+      var label = '▶ 开始';
+      var tw2 = ctx.measureText(label).width + 26;
+      ctx.fillStyle = m.acc;
+      roundRect(x - tw2 / 2, by - 17, tw2, 34, 17);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x - 7, by + 16); ctx.lineTo(x + 7, by + 16); ctx.lineTo(x, by + 26);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#1d2434';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(label, x, by + 1);
+      ctx.textBaseline = 'alphabetic';
+    }
+
+    // 文字标签
+    ctx.textAlign = 'center';
+    ctx.fillStyle = locked ? 'rgba(240,230,208,.55)' : '#f7eed6';
+    ctx.shadowColor = 'rgba(0,0,0,.65)';
+    ctx.shadowBlur = 6;
+    ctx.font = '900 19px "Noto Serif SC","Songti SC",serif';
+    ctx.fillText(m.yaoShort, x, y + r * 0.75 + 34);
+    ctx.font = '13px sans-serif';
+    ctx.fillStyle = locked ? 'rgba(220,210,185,.45)' : 'rgba(235,225,200,.88)';
+    var lect = (window.GAME_DATA && GAME_DATA.lectures[i]) ? GAME_DATA.lectures[i].tagline : '';
+    ctx.fillText('第' + '一二三四五六'[i] + '关 · ' + lect, x, y + r * 0.75 + 56);
+    if (done) {
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = 'rgba(255,217,138,.9)';
+      var st = S.stars[i];
+      ctx.fillText('★★★'.slice(0, st) + '☆☆☆'.slice(0, 3 - st), x, y + r * 0.75 + 76);
+    }
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  function roundRect(x, y, w, h, r2) {
+    ctx.beginPath();
+    ctx.moveTo(x + r2, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r2);
+    ctx.arcTo(x + w, y + h, x, y + h, r2);
+    ctx.arcTo(x, y + h, x, y, r2);
+    ctx.arcTo(x, y, x + w, y, r2);
+    ctx.closePath();
+  }
+
+  /* ---------- 巡游金龙 ---------- */
+  function dragonSpine(cur) {
+    var idx = Math.min(cur, 5);
+    var cx = lerp(islandWX(idx), W / 2, 0.4);
+    var cy = islandWY(idx) - camY + Math.sin(time * 0.8 + idx * 1.3) * 6 - islandR() - 74;
+    var orbX = Math.min(islandR() + 52, W * 0.34), orbY = 30;
+    var N = 34, pts = [];
+    for (var k = 0; k < N; k++) {
+      var ang = time * 0.56 - k * 0.062;
+      var px = cx + Math.cos(ang) * orbX;
+      var py = cy + Math.sin(ang) * orbY + Math.sin(time * 1.9 - k * 0.5) * 7;
+      pts.push([px, py]);
+    }
+    return pts;
+  }
+  function drawDragon(cur) {
+    var pts = dragonSpine(cur);
+    var hy0 = pts[0][1];
+    if (hy0 < -280 || hy0 > H + 280) return;
+    var N = pts.length;
+    // 法线
+    var nx = [], ny = [];
+    for (var k = 0; k < N; k++) {
+      var a = pts[Math.max(k - 1, 0)], b = pts[Math.min(k + 1, N - 1)];
+      var dx = b[0] - a[0], dy = b[1] - a[1];
+      var dl = Math.sqrt(dx * dx + dy * dy) || 1;
+      nx.push(-dy / dl); ny.push(dx / dl);
+    }
+    function wid(t2) { return 9.2 * (1 - t2) * (0.35 + 0.65 * Math.sqrt(1 - t2)) + 1.2; }
+    // 龙身轮廓（上缘去、下缘回）
+    var head = pts[0];
+    ctx.save();
+    ctx.shadowColor = 'rgba(255,200,110,.45)';
+    ctx.shadowBlur = 14;
+    var grad = ctx.createLinearGradient(head[0], head[1] - 40, head[0], head[1] + 60);
+    grad.addColorStop(0, '#ffe6ae');
+    grad.addColorStop(0.55, '#f4bd62');
+    grad.addColorStop(1, '#d98e3c');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0] + nx[0] * wid(0), pts[0][1] + ny[0] * wid(0));
+    for (var k1 = 1; k1 < N; k1++) {
+      var t2 = k1 / (N - 1), w = wid(t2);
+      ctx.lineTo(pts[k1][0] + nx[k1] * w, pts[k1][1] + ny[k1] * w);
+    }
+    for (var k2 = N - 1; k2 >= 0; k2--) {
+      var t3 = k2 / (N - 1), w2 = wid(t3);
+      ctx.lineTo(pts[k2][0] - nx[k2] * w2, pts[k2][1] - ny[k2] * w2);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // 腹线
+    ctx.strokeStyle = 'rgba(255,244,214,.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (var k3 = 0; k3 < N - 4; k3++) {
+      var t4 = k3 / (N - 1), w3 = wid(t4) * 0.45;
+      var px2 = pts[k3][0] - nx[k3] * w3, py2 = pts[k3][1] - ny[k3] * w3;
+      if (k3 === 0) ctx.moveTo(px2, py2); else ctx.lineTo(px2, py2);
+    }
+    ctx.stroke();
+    // 背鳍
+    ctx.fillStyle = 'rgba(216,120,60,.85)';
+    for (var k4 = 3; k4 < N - 6; k4 += 3) {
+      var t5 = k4 / (N - 1), w4 = wid(t5);
+      var bx1 = pts[k4][0] + nx[k4] * w4, by1 = pts[k4][1] + ny[k4] * w4;
+      var fh = 7 * (1 - t5) + 2;
+      ctx.beginPath();
+      ctx.moveTo(bx1 - 3, by1);
+      ctx.quadraticCurveTo(bx1 + nx[k4] * fh - 1, by1 + ny[k4] * fh - 2, bx1 + nx[k4] * fh * 1.4 + 2, by1 + ny[k4] * fh * 1.4);
+      ctx.lineTo(bx1 + 4, by1 + 1);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // 尾梢羽
+    var tl = pts[N - 1];
+    ctx.strokeStyle = 'rgba(244,189,98,.8)';
+    ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    for (var q2 = -1; q2 <= 1; q2++) {
+      ctx.beginPath();
+      ctx.moveTo(tl[0], tl[1]);
+      ctx.quadraticCurveTo(tl[0] - nx[N - 1] * q2 * 7 - 8, tl[1] - ny[N - 1] * q2 * 7, tl[0] - 14, tl[1] + q2 * 8);
+      ctx.stroke();
+    }
+    // 头部
+    var hx = pts[0][0], hy = pts[0][1];
+    var dirx = pts[0][0] - pts[2][0], diry = pts[0][1] - pts[2][1];
+    var dl2 = Math.sqrt(dirx * dirx + diry * diry) || 1;
+    dirx /= dl2; diry /= dl2;
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.rotate(Math.atan2(diry, dirx));
+    // 鬃毛
+    ctx.strokeStyle = 'rgba(216,120,60,.8)';
+    ctx.lineWidth = 2.6;
+    for (var mq = -1; mq <= 1; mq++) {
+      ctx.beginPath();
+      ctx.moveTo(-6, mq * 3 - 3);
+      ctx.quadraticCurveTo(-16, mq * 6 - 8 + Math.sin(time * 2.4 + mq) * 2, -24, mq * 8 - 6 + Math.sin(time * 2.4 + mq) * 3);
+      ctx.stroke();
+    }
+    // 头
+    var hg = ctx.createLinearGradient(0, -9, 0, 9);
+    hg.addColorStop(0, '#ffedc4');
+    hg.addColorStop(1, '#eda94e');
+    ctx.fillStyle = hg;
+    ctx.beginPath();
+    ctx.moveTo(-8, -7);
+    ctx.quadraticCurveTo(6, -10.5, 13, -4.5);
+    ctx.quadraticCurveTo(20, -2.5, 21.5, 1.5);   // 吻部
+    ctx.quadraticCurveTo(15, 4, 12, 6.5);
+    ctx.quadraticCurveTo(3, 9.5, -8, 7);
+    ctx.closePath();
+    ctx.fill();
+    // 鼻端
+    ctx.fillStyle = '#d98e3c';
+    ctx.beginPath(); ctx.arc(20, 0.4, 1.7, 0, 6.28); ctx.fill();
+    // 角
+    ctx.strokeStyle = '#f7e3b2'; ctx.lineWidth = 2.8; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-1, -7); ctx.quadraticCurveTo(-7, -16, -15, -18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(4, -8); ctx.quadraticCurveTo(0, -18, -6, -22); ctx.stroke();
+    // 须
+    ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,233,189,.9)';
+    ctx.beginPath(); ctx.moveTo(17, 1.5); ctx.quadraticCurveTo(26, 6, 24, 13 + Math.sin(time * 3) * 2.4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(17, 3); ctx.quadraticCurveTo(28, 11, 27, 17 + Math.sin(time * 3 + 1) * 2.4); ctx.stroke();
+    // 眼
+    ctx.fillStyle = '#2a1d0e';
+    ctx.beginPath(); ctx.arc(6, -3.4, 2.2, 0, 6.28); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(6.8, -4.1, 0.9, 0, 6.28); ctx.fill();
+    ctx.restore();
+    // 龙珠（引路）
+    var bx2 = hx + dirx * 34, by3 = hy + diry * 34 + Math.sin(time * 2.2) * 3;
+    var bg = ctx.createRadialGradient(bx2 - 2, by3 - 2, 1, bx2, by3, 7);
+    bg.addColorStop(0, '#fff');
+    bg.addColorStop(1, '#ffcf6e');
+    ctx.shadowColor = 'rgba(255,217,138,.95)'; ctx.shadowBlur = 12;
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.arc(bx2, by3, 5.6, 0, 6.28); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  /* ---------- 萤火 & 粒子 ---------- */
+  function drawFireflies(cur) {
+    ctx.save();
+    for (var i = 0; i < fireflies.length; i++) {
+      var f = fireflies[i];
+      var st = f.st % 6;
+      var ix = islandWX(st), iy = islandWY(st) - camY;
+      if (iy < -160 || iy > H + 160) continue;
+      var fx = ix + Math.cos(f.ang + time * 0.3 * f.s) * f.rr;
+      var fy = iy - 30 - ((time * f.vy + f.p * 30) % 130);
+      var al = 0.25 + 0.45 * Math.abs(Math.sin(time * 1.8 + f.p));
+      ctx.globalAlpha = al * (st <= cur ? 1 : 0.3);
+      ctx.fillStyle = st <= cur ? '#ffe3a0' : '#9fb3cc';
+      ctx.beginPath(); ctx.arc(fx, fy, f.s, 0, 6.28); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function spawnBurst(sx, sy, color, n) {
+    for (var i = 0; i < (n || 26); i++) {
+      var a = Math.random() * 6.28, sp = 60 + Math.random() * 190;
+      parts.push({
+        x: sx, y: sy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60,
+        life: 0.9 + Math.random() * 0.7, age: 0,
+        c: color || '#ffd98a', s: 2 + Math.random() * 3.2
+      });
+    }
+  }
+  function drawParts(dt) {
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var p = parts[i];
+      p.age += dt;
+      if (p.age >= p.life) { parts.splice(i, 1); continue; }
+      p.vy += 160 * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      var k = 1 - p.age / p.life;
+      ctx.globalAlpha = k;
+      ctx.fillStyle = p.c;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.s * k + 0.6, 0, 6.28); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* ---------- 主循环 ---------- */
+  var lastT = 0;
+  function frame(ts) {
+    var dt = Math.min((ts - lastT) / 1000, 0.05);
+    lastT = ts;
+    time += dt;
+    dashOff -= dt * 26;
+
+    // 相机弹性趋近
+    var d = camTarget - camY;
+    camY += d * Math.min(dt * 5, 1);
+
+    var sc = skyColors();
+    drawSky(sc);
+    drawStars(sc);
+    drawClouds(false);
+
+    var cur = currentStage();
+    drawPath(cur);
+    for (var i = 5; i >= 0; i--) drawIsland(i, cur);
+    drawFireflies(cur);
+    drawDragon(cur === 6 ? 5 : cur);
+    drawClouds(true);
+    drawParts(dt);
+
+    // 边缘晕影
+    var vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.75);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,.34)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- 交互 ---------- */
+  var touch = { down: false, sy: 0, cy0: 0, moved: 0, t0: 0 };
+  function onDown(x, y) {
+    if (!api.interactive) return;
+    touch.down = true; touch.sy = y; touch.cy0 = camTarget; touch.moved = 0; touch.t0 = Date.now();
+  }
+  function onMove(x, y) {
+    if (!touch.down) return;
+    var dy = y - touch.sy;
+    touch.moved = Math.max(touch.moved, Math.abs(dy));
+    camTarget = clamp(touch.cy0 - dy, 0, worldH - H);
+  }
+  function onUp(x, y) {
+    if (!touch.down) return;
+    touch.down = false;
+    if (touch.moved < 12 && Date.now() - touch.t0 < 420) {
+      // 命中检测（含与绘制一致的浮动偏移；向上扩大命中区覆盖「开始」气泡）
+      for (var i = 0; i < 6; i++) {
+        var ix = islandWX(i);
+        var iy = islandWY(i) - camY + Math.sin(time * 0.8 + i * 1.3) * 6;
+        var r = islandR();
+        var dx = x - ix, dy2 = y - iy;
+        var ry = dy2 < 0 ? r * 1.9 : r * 1.1;
+        if ((dx * dx) / (r * 1.35 * r * 1.35) + (dy2 * dy2) / (ry * ry) < 1) {
+          if (api.onIslandTap) api.onIslandTap(i);
+          return;
+        }
+      }
+    }
+  }
+  cv.addEventListener('touchstart', function (e) { var t = e.touches[0]; onDown(t.clientX, t.clientY); }, { passive: true });
+  cv.addEventListener('touchmove', function (e) { var t = e.touches[0]; onMove(t.clientX, t.clientY); e.preventDefault(); }, { passive: false });
+  cv.addEventListener('touchend', function (e) { var t = e.changedTouches[0]; onUp(t.clientX, t.clientY); }, { passive: true });
+  cv.addEventListener('mousedown', function (e) { onDown(e.clientX, e.clientY); });
+  cv.addEventListener('mousemove', function (e) { onMove(e.clientX, e.clientY); });
+  cv.addEventListener('mouseup', function (e) { onUp(e.clientX, e.clientY); });
+  cv.addEventListener('wheel', function (e) {
+    if (!api.interactive) return;
+    camTarget = clamp(camTarget + e.deltaY, 0, worldH - H);
+  }, { passive: true });
+
+  api.focusStage = function (i, instant) {
+    var y = islandWY(Math.min(i, 5)) - H * 0.52;
+    camTarget = clamp(y, 0, worldH - H);
+    if (instant) camY = camTarget;
+  };
+  api.celebrateStage = function (i) {
+    var x = islandWX(i), y = islandWY(i) - camY;
+    spawnBurst(x, y - 40, '#ffd98a', 34);
+    spawnBurst(x, y - 40, STAGE_META[i].acc, 22);
+  };
+  api.fireworks = function () {
+    var n = 0;
+    var iv = setInterval(function () {
+      spawnBurst(Math.random() * W, H * 0.2 + Math.random() * H * 0.4,
+        ['#ffd98a', '#ff8a65', '#4dd0e1', '#9ccc65', '#b39ddb', '#fff'][n % 6], 30);
+      if (++n > 11) clearInterval(iv);
+    }, 260);
+  };
+  api.start = function () {
+    if (started) return;
+    started = true;
+    resize();
+    initScenery();
+    api.focusStage(currentStage(), true);
+    requestAnimationFrame(function (ts) { lastT = ts; requestAnimationFrame(frame); });
+  };
+  return api;
+})();
+
+/* ================= HUD ================= */
+function updateHud() {
+  $('hudScore').textContent = S.score;
+  var yaos = $('hexHud').children;
+  for (var i = 0; i < 6; i++) {
+    if (S.done[i]) yaos[i].classList.add('lit');
+    else yaos[i].classList.remove('lit');
+  }
+  $('btnSound').textContent = S.sound ? '🔊' : '🔇';
+}
+
+/* ================= 对话框 ================= */
+function showDialog(title, body, btns) {
+  var mask = el('div', 'dialog-mask');
+  var d = el('div', 'dialog');
+  d.appendChild(el('div', 'd-t', esc(title)));
+  if (body) d.appendChild(el('div', 'd-b', body));
+  var row = el('div', 'd-row');
+  btns.forEach(function (b) {
+    var btn = el('button', 'btn ' + (b.cls || 'btn-ghost'), esc(b.label));
+    btn.addEventListener('click', function () {
+      document.body.removeChild(mask);
+      if (b.fn) b.fn();
+    });
+    row.appendChild(btn);
+  });
+  d.appendChild(row);
+  mask.appendChild(d);
+  document.body.appendChild(mask);
+}
+
+/* ================= 关卡流程 ================= */
+var QZ = null; // 当前关卡状态
+
+function setPanelAccent(i) {
+  var p = $('panel');
+  p.style.setProperty('--acc', STAGE_META[i].acc);
+  p.style.setProperty('--accd', STAGE_META[i].accd);
+}
+
+function openPanel() {
+  $('panel').classList.remove('hidden');
+  $('btnPanelClose').style.display = '';
+}
+function closePanel() {
+  $('panel').classList.add('hidden');
+  $('panelKcDots').classList.add('hidden');
+  $('panelQuizMeta').classList.add('hidden');
+  QZ = null;
+}
+
+function stageData(i) { return GAME_DATA.lectures[i]; }
+
+function startStage(i, replay) {
+  SFX.tap();
+  QZ = {
+    stage: i, replay: !!replay, mode: 'intro',
+    cardIdx: 0, qi: 0, qs: [], mistakes: 0, firstTry: 0, combo: 0, gained: 0,
+    answered: false
+  };
+  setPanelAccent(i);
+  openPanel();
+  renderIntro();
+}
+
+function renderIntro() {
+  var i = QZ.stage, m = STAGE_META[i], d = stageData(i);
+  $('panelCrumb').textContent = '第' + '一二三四五六'[i] + '关 · ' + m.phase;
+  $('panelKcDots').classList.add('hidden');
+  $('panelQuizMeta').classList.add('hidden');
+  var b = $('panelBody');
+  b.innerHTML = '';
+  var wrap = el('div', '', '');
+  wrap.style.textAlign = 'center';
+  wrap.style.paddingTop = '8px';
+  wrap.appendChild(el('div', 'stage-badge', esc(m.phase)));
+  wrap.appendChild(el('div', 'stage-yao serif', esc(m.yao.split(' · ')[1])));
+  wrap.appendChild(el('div', 'stage-yaosub', esc(m.yao.split(' · ')[0]) + ' ｜ ' + esc(m.plain)));
+  var lect = el('div', 'stage-lect');
+  lect.appendChild(el('div', 'l1', '对应课程 · 第' + '一二三四五六'[i] + '讲'));
+  lect.appendChild(el('div', 'l2', esc(d.title)));
+  lect.appendChild(el('div', 'l3', esc(d.tagline)));
+  wrap.appendChild(lect);
+  wrap.appendChild(el('div', 'stage-desc', esc(m.intro)));
+  if (d.key_motifs && d.key_motifs.length) {
+    var mo = el('div', 'stage-motifs');
+    d.key_motifs.slice(0, 4).forEach(function (t) { mo.appendChild(el('span', '', esc(t))); });
+    wrap.appendChild(mo);
+  }
+  b.appendChild(wrap);
+  b.scrollTop = 0;
+
+  var f = $('panelFoot');
+  f.innerHTML = '';
+  var b1 = el('button', 'btn btn-gold', S.briefed[i] ? '📖 温习秘籍' : '📖 研读秘籍');
+  b1.addEventListener('click', function () { SFX.flip(); QZ.mode = 'cards'; QZ.cardIdx = 0; renderCard(); });
+  f.appendChild(b1);
+  if (S.briefed[i]) {
+    var b2 = el('button', 'btn btn-ghost', '⚔️ 直接闯关');
+    b2.addEventListener('click', function () { startQuiz(); });
+    f.appendChild(b2);
+  }
+}
+
+/* ---------- 知识卡 ---------- */
+function renderCard(backward) {
+  var i = QZ.stage, d = stageData(i);
+  var cards = d.knowledge_cards;
+  var idx = QZ.cardIdx;
+  $('panelCrumb').textContent = '秘籍研读 · ' + STAGE_META[i].yaoShort;
+  var dots = $('panelKcDots');
+  dots.classList.remove('hidden');
+  dots.innerHTML = '';
+  for (var k = 0; k < cards.length; k++) {
+    var dot = el('i', k <= idx ? 'on' : '');
+    dots.appendChild(dot);
+  }
+  var b = $('panelBody');
+  b.innerHTML = '';
+  var c = cards[idx];
+  var kc = el('div', 'kcard' + (backward ? ' back' : ''));
+  kc.appendChild(el('div', 'kcard-no', '秘籍 ' + (idx + 1) + ' / ' + cards.length));
+  kc.appendChild(el('div', 'kcard-title serif', esc(c.title)));
+  kc.appendChild(el('div', 'kcard-body', esc(c.body)));
+  if (c.quote) {
+    var qw = el('div', 'kcard-quote');
+    qw.appendChild(el('div', 'q', esc(c.quote)));
+    kc.appendChild(qw);
+  }
+  b.appendChild(kc);
+  b.scrollTop = 0;
+
+  var f = $('panelFoot');
+  f.innerHTML = '';
+  if (idx > 0) {
+    var bp = el('button', 'btn btn-ghost', '上一张');
+    bp.style.flex = '0 0 32%';
+    bp.addEventListener('click', function () { SFX.flip(); QZ.cardIdx--; renderCard(true); });
+    f.appendChild(bp);
+  }
+  var isLast = idx === cards.length - 1;
+  var bn = el('button', 'btn btn-gold', isLast ? '⚔️ 开始闯关' : '下一张');
+  bn.addEventListener('click', function () {
+    if (isLast) { S.briefed[QZ.stage] = true; saveGame(); startQuiz(); }
+    else { SFX.flip(); QZ.cardIdx++; renderCard(); }
+  });
+  f.appendChild(bn);
+}
+
+/* ---------- 组题 ---------- */
+function buildQuestions(i) {
+  var d = stageData(i);
+  var pool = shuffle(d.quiz).slice(0, QUIZ_PICK);
+  var qs = pool.map(function (q) { return prepQuestion(q, false); });
+  qs.push(prepQuestion(d.boss, true));
+  return qs;
+}
+function prepQuestion(q, isBoss) {
+  var item = { type: q.type || 'single', question: q.question, explain: q.explain, isBoss: isBoss };
+  if (item.type === 'order') {
+    item.correct = q.options.slice();
+    item.pool = shuffle(q.options);
+    // 避免打乱后恰好等于正确顺序
+    if (item.pool.join('|') === item.correct.join('|') && item.pool.length > 1) {
+      item.pool = item.pool.slice(1).concat(item.pool[0]);
+    }
+    item.slots = [];
+  } else if (item.type === 'tf') {
+    item.options = ['对', '错'];
+    item.answer = q.answer;
+  } else {
+    var idx = [];
+    for (var k = 0; k < q.options.length; k++) idx.push(k);
+    idx = shuffle(idx);
+    item.options = idx.map(function (j) { return q.options[j]; });
+    item.answer = idx.indexOf(q.answer);
+  }
+  return item;
+}
+
+function startQuiz() {
+  SFX.tap();
+  if (QZ.qs.length === 0) QZ.qs = buildQuestions(QZ.stage);
+  QZ.mode = 'quiz';
+  QZ.qi = 0; QZ.mistakes = 0; QZ.firstTry = 0; QZ.combo = 0; QZ.gained = 0;
+  $('panelKcDots').classList.add('hidden');
+  $('panelQuizMeta').classList.remove('hidden');
+  renderQuestion();
+}
+
+function typeName(q) {
+  if (q.type === 'tf') return '判断题 · 对还是错？';
+  if (q.type === 'order') return '排序题 · 按正确顺序点选';
+  return '选择题 · 四选一';
+}
+
+function renderQuestion() {
+  var i = QZ.stage, q = QZ.qs[QZ.qi];
+  QZ.answered = false;
+  var total = QZ.qs.length;
+  $('panelCrumb').textContent = STAGE_META[i].yaoShort + ' · 闯关' + (QZ.replay ? '（温习 · 不计修为）' : '');
+  $('quizCount').textContent = (QZ.qi + 1) + ' / ' + total;
+  $('quizBarFill').style.width = Math.round(QZ.qi / total * 100) + '%';
+  var b = $('panelBody');
+  b.innerHTML = '';
+  var w = el('div');
+  if (q.isBoss) {
+    w.appendChild(el('div', 'boss-tag', '🔥 本关大考 · 试炼之门'));
+    if (!q._bossPlayed) { SFX.boss(); q._bossPlayed = true; }
+  }
+  w.appendChild(el('div', 'q-type', typeName(q)));
+  w.appendChild(el('div', 'q-text', esc(q.question)));
+
+  if (q.type === 'order') renderOrder(w, q);
+  else renderChoice(w, q);
+
+  b.appendChild(w);
+  b.scrollTop = 0;
+  $('panelFoot').innerHTML = '';
+}
+
+/* ---------- 选择/判断 ---------- */
+function renderChoice(w, q) {
+  var letters = ['A', 'B', 'C', 'D', 'E'];
+  q.options.forEach(function (opt, oi) {
+    var o = el('button', 'opt');
+    o.appendChild(el('span', 'ab', q.type === 'tf' ? (oi === 0 ? '✓' : '✗') : letters[oi]));
+    o.appendChild(el('span', '', esc(opt)));
+    o.addEventListener('click', function () {
+      if (QZ.answered) return;
+      QZ.answered = true;
+      var opts = w.querySelectorAll('.opt');
+      var right = oi === q.answer;
+      for (var k = 0; k < opts.length; k++) {
+        if (k === q.answer) opts[k].classList.add('ok');
+        else if (k === oi && !right) opts[k].classList.add('bad');
+        else opts[k].classList.add('dim');
+      }
+      settleAnswer(right, q);
+    });
+    w.appendChild(o);
+  });
+}
+
+/* ---------- 排序 ---------- */
+function renderOrder(w, q) {
+  q.slots = [];
+  var slotBox = el('div', 'ord-slots');
+  var pool = el('div', 'ord-pool');
+  var confirm = el('button', 'btn btn-gold btn-block', '确认顺序');
+  confirm.disabled = true;
+  confirm.style.marginTop = '16px';
+
+  function refresh() {
+    slotBox.innerHTML = '';
+    if (q.slots.length === 0) {
+      slotBox.appendChild(el('div', 'empty-hint', '按正确顺序，点选下面的选项 ↓'));
+    }
+    q.slots.forEach(function (txt, si) {
+      var ch = el('button', 'chip', '<span class="n">' + (si + 1) + '</span>' + esc(txt));
+      ch.addEventListener('click', function () {
+        if (QZ.answered) return;
+        SFX.tap();
+        q.slots.splice(si, 1);
+        refresh();
+      });
+      slotBox.appendChild(ch);
+    });
+    pool.innerHTML = '';
+    q.pool.forEach(function (txt) {
+      var used = q.slots.indexOf(txt) !== -1;
+      var ch = el('button', 'chip' + (used ? ' ghost' : ''), esc(txt));
+      if (!used) ch.addEventListener('click', function () {
+        if (QZ.answered) return;
+        SFX.tap();
+        q.slots.push(txt);
+        refresh();
+      });
+      pool.appendChild(ch);
+    });
+    var full = q.slots.length === q.correct.length;
+    confirm.disabled = !full;
+    confirm.textContent = full ? '确认顺序' : ('已选 ' + q.slots.length + ' / ' + q.correct.length + ' · 请选完再确认');
+    undoHint.style.display = q.slots.length > 0 ? '' : 'none';
+  }
+  var undoHint = el('div', '', '选错了？点上面框里的选项，可以拿回来重选');
+  undoHint.style.cssText = 'font-size:14px;color:#a99f83;margin:8px 2px 0;';
+  confirm.addEventListener('click', function () {
+    if (QZ.answered) return;
+    QZ.answered = true;
+    var right = q.slots.join('|') === q.correct.join('|');
+    if (!right) q.explainOrder = '正确顺序：' + q.correct.join(' → ') + '。' + q.explain;
+    settleAnswer(right, q);
+    confirm.style.display = 'none';
+  });
+  w.appendChild(slotBox);
+  w.appendChild(undoHint);
+  w.appendChild(pool);
+  w.appendChild(confirm);
+  refresh();
+}
+
+/* ---------- 判分与反馈 ---------- */
+function settleAnswer(right, q) {
+  var b = $('panelBody');
+  var fb = el('div', 'fb ' + (right ? 'good' : 'bad'));
+  var pts = 0;
+  if (right) {
+    QZ.combo++;
+    if (!q._retried) QZ.firstTry++;
+    if (!QZ.replay) {
+      pts = q.isBoss ? (q._retried ? PTS_BOSS_RETRY : PTS_BOSS) : PTS_FIRST;
+      QZ.gained += pts;
+    }
+    var h = el('div', 'fb-h', (q.isBoss ? '🐉 大考通过！' : ['✓ 答对了！', '✓ 漂亮！', '✓ 正是如此！', '✓ 好眼力！'][Math.floor(Math.random() * 4)]));
+    if (pts) h.appendChild(el('span', 'fb-pts', '修为 +' + pts));
+    fb.appendChild(h);
+    if (QZ.combo >= 2) {
+      var cb = $('quizCombo');
+      cb.textContent = '连对 ×' + QZ.combo;
+      cb.classList.add('show');
+      SFX.combo(QZ.combo);
+    } else {
+      SFX.good();
+    }
+    fb.appendChild(el('div', 'fb-x', esc(q.explain)));
+  } else {
+    QZ.combo = 0;
+    QZ.mistakes++;
+    $('quizCombo').classList.remove('show');
+    SFX.bad();
+    fb.appendChild(el('div', 'fb-h', q.isBoss ? '✗ 大考未过 · 看解析再来' : '✗ 差一点 · 看看解析'));
+    fb.appendChild(el('div', 'fb-x', esc(q.explainOrder || q.explain)));
+  }
+  b.appendChild(fb);
+  try { fb.scrollIntoView({ behavior: 'smooth', block: 'end' }); }
+  catch (e) { b.scrollTop = b.scrollHeight; }
+
+  var f = $('panelFoot');
+  f.innerHTML = '';
+  var last = QZ.qi === QZ.qs.length - 1;
+  var btn;
+  if (!right && q.isBoss) {
+    btn = el('button', 'btn btn-gold', '🔁 记住了，再试一次');
+    btn.addEventListener('click', function () {
+      SFX.tap();
+      q._retried = true;
+      if (q.type !== 'order' && q.type !== 'tf') {
+        // 重新洗选项
+        var pairs = q.options.map(function (o, k) { return [o, k === q.answer]; });
+        pairs = shuffle(pairs);
+        q.options = pairs.map(function (p) { return p[0]; });
+        q.answer = -1;
+        pairs.forEach(function (p, k) { if (p[1]) q.answer = k; });
+      } else if (q.type === 'order') {
+        q.pool = shuffle(q.correct);
+        q.slots = [];
+      }
+      renderQuestion();
+    });
+  } else {
+    btn = el('button', 'btn btn-gold', last ? '🏮 完成试炼' : (right ? '下一题' : '记住了，继续'));
+    btn.addEventListener('click', function () {
+      SFX.tap();
+      if (last) { finishStage(); }
+      else { QZ.qi++; renderQuestion(); }
+    });
+  }
+  f.appendChild(btn);
+}
+
+/* ---------- 结算 ---------- */
+function calcStars() {
+  if (QZ.mistakes === 0) return 3;
+  if (QZ.mistakes <= 2) return 2;
+  return 1;
+}
+
+function finishStage() {
+  QZ.mode = 'result';
+  $('btnPanelClose').style.display = 'none';
+  var i = QZ.stage;
+  var stars = calcStars();
+  var firstClear = !S.done[i];
+  if (!QZ.replay) {
+    QZ.gained += PTS_STAGE_BONUS + (QZ.mistakes === 0 ? PTS_PERFECT : 0);
+    S.score += QZ.gained;
+  }
+  S.done[i] = true;
+  if (stars > S.stars[i]) S.stars[i] = stars;
+  saveGame();
+  updateHud();
+
+  $('panelQuizMeta').classList.add('hidden');
+  $('quizCombo').classList.remove('show');
+  $('panelCrumb').textContent = STAGE_META[i].yaoShort + ' · 试炼完成';
+  var b = $('panelBody');
+  b.innerHTML = '';
+  var w = el('div', 'result-wrap');
+  w.appendChild(el('div', 'result-yao', STAGE_META[i].yao + ' · 试炼完成'));
+  w.appendChild(el('div', 'result-title serif', firstClear ? '爻 位 点 亮' : '温 习 完 成'));
+  var stw = el('div', 'stars');
+  for (var k = 0; k < 3; k++) {
+    var st = el('span', 'st' + (k < stars ? ' on' : ''), '⭐');
+    stw.appendChild(st);
+  }
+  w.appendChild(stw);
+  if (firstClear) w.appendChild(el('div', 'yao-award'));
+  var stats = el('div', 'result-stats');
+  stats.appendChild(statBox(QZ.firstTry + ' / ' + QZ.qs.length, '一次答对'));
+  if (!QZ.replay) stats.appendChild(statBox('+' + QZ.gained, '修为'));
+  stats.appendChild(statBox(stars === 3 ? '完美' : (stars === 2 ? '优秀' : '通过'), '评价'));
+  w.appendChild(stats);
+  var quotes = [
+    '潜龙已醒——你看见了别人还没看见的浪潮。',
+    '见龙在田——你的 AI 团队，今晚正式开张。',
+    '终日乾乾——地图在手，更要天天复盘。',
+    '或跃在渊——这一跃，你戴上了第二副眼镜。',
+    '飞龙在天——六爻在心，位置感常在。',
+    '亢龙有悔——记住边界，才配得上顶峰。'
+  ];
+  w.appendChild(el('div', 'result-quote serif', esc(quotes[i])));
+  b.appendChild(w);
+  b.scrollTop = 0;
+  SFX.yao();
+
+  var f = $('panelFoot');
+  f.innerHTML = '';
+  var done = S.done.every(function (x) { return x; });
+  var btn = el('button', 'btn btn-gold btn-block',
+    firstClear ? (done ? '✨ 点亮最后一爻' : '✨ 点亮爻位，返回地图') : '返回地图');
+  btn.addEventListener('click', function () {
+    closePanel();
+    if (firstClear) pearlFly(i, done);
+    else MAP.focusStage(currentStage() === 6 ? 5 : currentStage());
+  });
+  f.appendChild(btn);
+}
+function statBox(v, k) {
+  var s = el('div', 'rstat');
+  s.appendChild(el('div', 'v', esc(String(v))));
+  s.appendChild(el('div', 'k', esc(k)));
+  return s;
+}
+
+/* ---------- 龙珠飞入卦象 ---------- */
+function pearlFly(i, allDone) {
+  var pearl = el('div');
+  pearl.id = 'fxPearl';
+  var sx = window.innerWidth / 2, sy = window.innerHeight / 2;
+  pearl.style.left = sx + 'px'; pearl.style.top = sy + 'px';
+  pearl.style.transition = 'all .85s cubic-bezier(.5,-0.2,.4,1)';
+  document.body.appendChild(pearl);
+  var yaos = $('hexHud').children;
+  var rect = yaos[i].getBoundingClientRect();
+  setTimeout(function () {
+    pearl.style.left = (rect.left + rect.width / 2 - 13) + 'px';
+    pearl.style.top = (rect.top + rect.height / 2 - 13) + 'px';
+    pearl.style.transform = 'scale(.4)';
+    pearl.style.opacity = '.9';
+  }, 40);
+  setTimeout(function () {
+    if (pearl.parentNode) document.body.removeChild(pearl);
+    updateHud();
+    yaos[i].classList.add('flash');
+    setTimeout(function () { yaos[i].classList.remove('flash'); }, 950);
+    MAP.celebrateStage(i);
+    if (allDone) {
+      setTimeout(function () { showCertificate(true); }, 1100);
+    } else {
+      MAP.focusStage(currentStage());
+      toast(STAGE_META[i].yaoShort + ' 已点亮 · 下一境已解锁');
+    }
+  }, 920);
+}
+
+/* ================= 图鉴 ================= */
+var codexTab = 0;
+function openCodex() {
+  SFX.tap();
+  $('screen-codex').classList.remove('hidden');
+  var cur = currentStage();
+  if (codexTab > cur && cur < 6) codexTab = cur;
+  renderCodexTabs();
+  renderCodexBody();
+}
+function renderCodexTabs() {
+  var tabs = $('codexTabs');
+  tabs.innerHTML = '';
+  var cur = currentStage();
+  for (var i = 0; i < 6; i++) {
+    (function (i) {
+      var reachable = i <= cur || S.done[i];
+      var b = el('button', i === codexTab ? 'on' : '',
+        (reachable ? '' : '🔒 ') + esc(STAGE_META[i].yaoShort));
+      b.addEventListener('click', function () {
+        SFX.tap();
+        codexTab = i;
+        renderCodexTabs();
+        renderCodexBody();
+      });
+      tabs.appendChild(b);
+    })(i);
+  }
+}
+function renderCodexBody() {
+  var body = $('codexBody');
+  body.innerHTML = '';
+  var i = codexTab;
+  var cur = currentStage();
+  var reachable = i <= cur || S.done[i];
+  if (!reachable) {
+    body.appendChild(el('div', 'codex-lock',
+      '🔒<br>此境尚未抵达<br>先闯过前面的爻境，秘籍自然到手'));
+    return;
+  }
+  var d = stageData(i);
+  var head = el('div', 'codex-item');
+  head.style.borderColor = STAGE_META[i].accd;
+  head.appendChild(el('div', 't', esc(STAGE_META[i].yao) + ' ｜ 第' + '一二三四五六'[i] + '讲'));
+  head.appendChild(el('div', 'b', esc(d.title) + '<br>' + esc(STAGE_META[i].plain)));
+  body.appendChild(head);
+  d.knowledge_cards.forEach(function (c, k) {
+    var it = el('div', 'codex-item');
+    it.appendChild(el('div', 't', '📜 ' + esc(c.title)));
+    it.appendChild(el('div', 'b', esc(c.body)));
+    if (c.quote) it.appendChild(el('div', 'q', '💡 ' + esc(c.quote)));
+    body.appendChild(it);
+  });
+  var bd = el('div', 'codex-item');
+  bd.appendChild(el('div', 't', '🧭 本讲边界'));
+  bd.appendChild(el('div', 'b', esc(d.boundary)));
+  body.appendChild(bd);
+  body.scrollTop = 0;
+}
+
+/* ================= 证书 ================= */
+function showCertificate(fresh) {
+  $('certName').textContent = S.name || '潜龙道友';
+  var totalStars = S.stars.reduce(function (a, b) { return a + b; }, 0);
+  var stats = $('certStats');
+  stats.innerHTML = '';
+  stats.appendChild(statBox(S.score, '修为'));
+  stats.appendChild(statBox(totalStars + ' / 18', '星数'));
+  stats.appendChild(statBox('6 / 6', '爻位'));
+  var now = new Date();
+  $('certDate').textContent = '通关于 ' + now.getFullYear() + ' 年 ' + (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日';
+  $('screen-cert').classList.remove('hidden');
+  $('screen-cert').scrollTop = 0;
+  if (fresh) {
+    SFX.win();
+    MAP.fireworks();
+    S.certSeen = true;
+    saveGame();
+  }
+}
+
+/* ================= 启动 ================= */
+function bootUI() {
+  loadGame();
+  updateHud();
+  $('nameInput').value = S.name || '';
+  if (S.done.some(function (x) { return x; })) {
+    $('btnStart').textContent = '继 续 修 行';
+  }
+  MAP.start();
+
+  MAP.onIslandTap = function (i) {
+    var cur = currentStage();
+    if (i > cur) {
+      SFX.tap();
+      toast('🔒 先闯过「' + STAGE_META[cur === 6 ? 5 : cur].yaoShort + '」，此境才会解锁');
+      return;
+    }
+    if (S.done[i]) {
+      setPanelAccent(i);
+      showDialog(STAGE_META[i].yaoShort + ' · 已点亮', '这一境你已通关（' + '★★★'.slice(0, S.stars[i]) + '）。<br>要温习秘籍，还是再闯一次、争取拿满 3 颗星？', [
+        { label: '📖 温习', fn: function () { codexTab = i; openCodex(); } },
+        { label: '⚔️ 再闯一次', cls: 'btn-gold', fn: function () { startStage(i, true); } }
+      ]);
+      return;
+    }
+    startStage(i, false);
+  };
+
+  $('btnStart').addEventListener('click', function () {
+    auInit(); auResume();
+    SFX.good();
+    var nm = $('nameInput').value.replace(/\s+/g, '').slice(0, 8);
+    if (nm) S.name = nm;
+    saveGame();
+    $('screen-title').classList.add('hidden');
+    $('hud').classList.remove('hidden');
+    $('mapHint').classList.remove('hidden');
+    MAP.interactive = true;
+    MAP.focusStage(currentStage() === 6 ? 5 : currentStage());
+    if (S.done.every(function (x) { return x; })) {
+      setTimeout(function () { showCertificate(false); }, 400);
+    }
+  });
+
+  $('btnPanelClose').addEventListener('click', function () {
+    SFX.tap();
+    if (QZ && QZ.mode === 'quiz') {
+      showDialog('要中途退出吗？', '退出后，本次闯关进度不保留。<br>秘籍与已获修为不受影响。', [
+        { label: '继续闯关', cls: 'btn-gold' },
+        { label: '退出', fn: function () { closePanel(); } }
+      ]);
+    } else {
+      closePanel();
+    }
+  });
+
+  $('btnCodex').addEventListener('click', openCodex);
+  document.querySelector('.hud-logo').addEventListener('click', function () {
+    SFX.tap();
+    var totalStars = S.stars.reduce(function (a, b) { return a + b; }, 0);
+    showDialog('飞龙之路', 'AI 时代个人破局训练营 · 六讲通关游戏<br>当前修为 ' + S.score + ' · 星数 ' + totalStars + ' / 18<br><br>本游戏为课程知识复习工具：<br>不算命 · 不荐股 · 不承诺收益', [
+      { label: '继续游戏', cls: 'btn-gold' },
+      {
+        label: '重置进度', fn: function () {
+          showDialog('确定重置吗？', '六爻、修为、星数将全部清零，<br>从潜龙勿用重新开始。', [
+            { label: '再想想', cls: 'btn-gold' },
+            {
+              label: '确定重置', fn: function () {
+                var keepSound = S.sound;
+                S = { name: '', score: 0, done: [false, false, false, false, false, false], stars: [0, 0, 0, 0, 0, 0], briefed: [false, false, false, false, false, false], sound: keepSound, certSeen: false };
+                saveGame();
+                updateHud();
+                closePanel();
+                $('screen-codex').classList.add('hidden');
+                $('screen-cert').classList.add('hidden');
+                MAP.focusStage(0);
+                toast('已重置 · 新一条龙，回到水底');
+              }
+            }
+          ]);
+        }
+      }
+    ]);
+  });
+  $('btnCodexClose').addEventListener('click', function () { SFX.tap(); $('screen-codex').classList.add('hidden'); });
+  $('btnSound').addEventListener('click', function () {
+    S.sound = !S.sound;
+    saveGame();
+    updateHud();
+    if (S.sound) { auInit(); auResume(); SFX.good(); }
+  });
+  $('btnCertBack').addEventListener('click', function () {
+    SFX.tap();
+    $('screen-cert').classList.add('hidden');
+    MAP.focusStage(5);
+  });
+
+  // 首次交互解锁音频（微信内核要求手势触发）
+  document.body.addEventListener('touchstart', function once() {
+    auInit(); auResume();
+    document.body.removeEventListener('touchstart', once);
+  }, { passive: true });
+
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootUI);
+} else {
+  bootUI();
+}
+
+</script>
+</body>
+</html>
